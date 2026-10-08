@@ -1,9 +1,15 @@
 # Scratch Physics
 
-A progressive, block-programmable physics sandbox. Every scene is a live
-simulation: drag objects, drag the tips of force and velocity arrows, edit
-parameters, and program the world with Scratch-style blocks — the physics,
-the drawings, the equations and the program all stay connected.
+Physics lessons that play like a film you can touch. Each lesson is drawn in
+the visual language of engineering-mechanics figures (white paper, black
+ink, Computer Modern), plays as a sequence of short narrated beats, and stops
+whenever it is the learner's turn to predict, drag, build or run something.
+Every drawing is a live, manipulable model, not an illustration.
+
+**Lesson 1 — Describing Motion** (position, motion diagrams, position–time
+graphs, velocity as slope, and the update rule `x ← x + v·Δt`) is the first
+complete lesson. Its design script is in
+[`docs/lesson-01-script.md`](docs/lesson-01-script.md).
 
 ## Run it
 
@@ -11,27 +17,56 @@ No build step and no dependencies.
 
 ```sh
 npm start          # serves the app at http://localhost:8080
-npm test           # physics, expression-language and block-interpreter tests
+npm test           # physics, rule-tile, expression and interpreter tests
 ```
 
-Open a specific level with `?level=<id>`, e.g. `http://localhost:8080/?level=b6-forces`.
+Then open http://localhost:8080. Jump to a chapter with `?chapter=<id>`
+(`where`, `when`, `graphs`, `velocity`, `rule`, `challenge`, `summary`).
 
-## Curriculum
+Controls: **Space** play/pause, **← / →** previous/next beat, **Enter**
+continue. Drag on the timeline to scrub; click the drawing to pause.
 
-| Tier | Status | Levels |
+The earlier free-form prototype (block editor and sandbox levels) is still
+available at `sandbox.html`; it will be replaced by lesson-style content.
+
+## Lesson 1 at a glance
+
+| Ch. | Topic | What the learner does |
 | --- | --- | --- |
-| **Beginner** | ✅ available | B1 A point · B2 Objects · B3 Position · B4 Distance · B5 Motion · B6 Forces · B7 Gravity · B8 Playground |
-| **Intermediate** | planned | vectors, coordinate frames, trajectories, collisions, springs, interacting bodies |
-| **Advanced** | planned | planar engineering mechanisms (rigid bodies, rolling, linkages, spring–dampers, frames, equations of motion) in engineering-drawing style |
+| 1 | Where? | Drag the cart to x = 6 m; move the origin and watch x turn negative |
+| 2 | When? | Watch a motion diagram build; **predict** where a faster cart will be, then see |
+| 3 | Graphs | Snapshots drop onto a time axis, which rotates into the x–t graph; scrub time |
+| 4 | How fast? | Slope triangles; drag a line to set v = −1.5 m/s; a misconception check |
+| 5 | The rule | Build `x ← x + v·Δt` from unit-carrying tiles, test it, step through it |
+| 6 | Your turn | Reach a flag on time; reach the origin with a negative velocity |
 
-Visual complexity grows with the tier. Beginner scenes use a soft style with
-plain-word labels ("push", "support", "weight") and only show what the
-current idea needs: axes first appear in *Position*, force arrows in *Forces*.
-The renderer already has the technical and drafting styles (hatching, pin
-supports, dimensions, angle arcs, coordinate frames, title block) that later
-tiers will use.
+### Blocks, redesigned: rules, not commands
 
-## How it fits together
+The tiles are not puppet commands. A rule says how a property changes in one
+tick, and the simulation runs exactly the rule the learner builds. Every
+tile is a quantity with a unit, and the editor does dimensional analysis live
+("m + m/s: you can't add a position and a velocity"). Rules with the right
+units but the wrong physics still run, so the learner sees the consequence
+(the cart never moves, or runs away), then fixes the model. See section 4 of
+the lesson script for how the rule language grows through the curriculum.
+
+## Code map
+
+```
+src/lesson/
+  core/player.js   timeline, beats (watch / do / card), camera moves, captions, input
+  core/ink.js      drawing language: hatched ground, parts, dimensions, balloons, arrows
+  core/anim.js     easing and timing helpers (watch beats are pure functions of time)
+  core/scrub.js    scrubbable numbers
+  rule.js          rule tiles: units, analysis, evaluation, consequence-aware judging
+  l1/lesson1.js    Lesson 1, beat by beat
+  l1/panel.js      object card, clock and rule editor
+src/physics/       XPBD engine used by the sandbox prototype (and later lessons)
+docs/              lesson scripts
+assets/fonts/      Computer Modern (CMU Serif) and Inter, both SIL OFL
+```
+
+## Sandbox prototype internals
 
 ```
 src/
