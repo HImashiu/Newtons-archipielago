@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scratch Physics</title>
+  <meta name="description" content="A progressive, block-programmable physics sandbox.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='9' fill='%233b82f6'/%3E%3Cpath d='M16 16h12' stroke='%23ef4444' stroke-width='3'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles/app.css">
+  <link rel="stylesheet" href="styles/scene.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="logo" aria-hidden="true"></span><span>Scratch&nbsp;Physics</span></div>
+    <nav class="level-nav" aria-label="Levels">
+      <button class="icon-btn" id="prev-level" title="Previous level" aria-label="Previous level">‹</button>
+      <button class="level-title" id="open-map" title="All levels">
+        <span class="tier-chip" id="tier-chip"></span>
+        <span id="level-name"></span>
+        <span class="caret" aria-hidden="true">▾</span>
+      </button>
+      <button class="icon-btn" id="next-level" title="Next level" aria-label="Next level">›</button>
+    </nav>
+    <div class="transport" role="group" aria-label="Simulation controls">
+      <button class="run-btn" id="run" title="Run (start the program)"><span class="run-icon" aria-hidden="true"></span><span class="run-label">Run</span></button>
+      <button class="btn" id="step" title="Advance one frame (1/60 s)">Step</button>
+      <button class="btn" id="reset" title="Back to the setup">↺ Reset</button>
+    </div>
+    <div class="top-right">
+      <div class="menu">
+        <button class="btn" id="view-btn" aria-haspopup="true" aria-expanded="false">View ▾</button>
+        <div class="menu-pop" id="view-menu" hidden></div>
+      </div>
+      <button class="btn" id="export" title="Download the scene as an SVG figure">Export SVG</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="pane blocks-pane" aria-label="Program">
+      <div class="pane-head">
+        <h2>Program</h2>
+        <button class="btn small" id="reset-program" title="Restore this level’s starting program">Restore</button>
+      </div>
+      <div class="block-editor" id="blocks"></div>
+    </section>
+
+    <section class="pane stage-pane" aria-label="Simulation">
+      <div class="toolbar" id="toolbar" role="toolbar" aria-label="Tools"></div>
+      <div class="stage" id="stage">
+        <svg class="scene" id="scene" role="img" aria-label="Physics scene"></svg>
+      </div>
+      <div class="plot-pane" hidden><div class="plot" id="plot"></div></div>
+    </section>
+
+    <aside class="pane side-pane">
+      <section class="panel mission" aria-label="Mission">
+        <div class="concept" id="concept"></div>
+        <h1 id="mission-title"></h1>
+        <div class="intro" id="intro"></div>
+        <ol class="goals" id="goals"></ol>
+        <button class="next-btn" id="next-btn" hidden>Next level ›</button>
+      </section>
+      <section class="panel" aria-label="Inspector">
+        <h2>Inspector</h2>
+        <div class="inspector" id="inspector"></div>
+      </section>
+      <section class="panel" aria-label="Relationships">
+        <h2>Relationships</h2>
+        <div class="equations" id="equations"></div>
+      </section>
+    </aside>
+  </main>
+
+  <dialog class="map" id="map">
+    <div class="map-head">
+      <h2>Levels</h2>
+      <button class="icon-btn" id="close-map" aria-label="Close">✕</button>
+    </div>
+    <div class="map-tiers" id="map-tiers"></div>
+  </dialog>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

@@ -33,9 +33,9 @@ const FIELDS = {
     num('length', '$L$', 'length', 'm', 0.05, 10, 0.01, { set: (r, v, s) => { r.length = v; s.sim.world.relax(80); } }),
   ],
   force: [
-    num('fx', '$F_x$', 'x-component', 'N', -100, 100, 0.5, { get: (f) => f.vec.x, set: (f, v) => { f.vec = { x: v, y: f.vec.y }; } }),
-    num('fy', '$F_y$', 'y-component', 'N', -100, 100, 0.5, { get: (f) => f.vec.y, set: (f, v) => { f.vec = { x: f.vec.x, y: v }; } }),
-    num('mag', '$|\\v{F}|$', 'magnitude', 'N', 0, 100, 0.5, { get: (f) => V.len(f.vec), set: (f, v) => { const a = V.angleOf(f.vec); f.vec = V.fromAngle(a, v); } }),
+    num('fx', '$F_x$', 'x part', 'N', -100, 100, 0.5, { get: (f) => f.vec.x, set: (f, v) => { f.vec = { x: v, y: f.vec.y }; } }),
+    num('fy', '$F_y$', 'y part', 'N', -100, 100, 0.5, { get: (f) => f.vec.y, set: (f, v) => { f.vec = { x: f.vec.x, y: v }; } }),
+    num('mag', '$|\\v{F}|$', 'size', 'N', 0, 100, 0.5, { get: (f) => V.len(f.vec), set: (f, v) => { const a = V.angleOf(f.vec); f.vec = V.fromAngle(a, v); } }),
     num('dir', '$φ$', 'direction', '°', -180, 180, 1, { get: (f) => V.deg(V.angleOf(f.vec)), set: (f, v) => { f.vec = V.fromAngle(V.rad(v), V.len(f.vec)); } }),
     { type: 'bool', key: 'enabled', label: 'acting' },
   ],
@@ -122,8 +122,10 @@ export class Inspector {
         if (f.when && !f.when(e)) continue;
         frag.append(this.field(e, f));
       }
-      const derived = (DERIVED[e.kind] ?? (() => []))(sim.world, e);
-      if (derived.length && sim.tier >= 1) {
+      // Beginner levels only show the quantities they have introduced.
+      const allow = sim.level.derived ?? (sim.tier === 1 ? [] : null);
+      const derived = (DERIVED[e.kind] ?? (() => []))(sim.world, e).filter((d) => !allow || allow.includes(d[0]));
+      if (derived.length) {
         const box = document.createElement('div');
         box.className = 'derived';
         derived.forEach((d, i) => {
@@ -132,7 +134,7 @@ export class Inspector {
           row.dataset.refs = d[3].join(' ');
           row.innerHTML = `<span class="d-label">${escapeXml(d[0])}</span><span class="d-sym">${mathHtml(d[1])}</span><span class="d-val"></span>`;
           box.append(row);
-          this.derivedEls.push({ el: row.querySelector('.d-val'), i, entity: e });
+          this.derivedEls.push({ el: row.querySelector('.d-val'), key: d[0], entity: e });
         });
         frag.append(box);
       }
@@ -267,7 +269,7 @@ export class Inspector {
     }
     // Time scale (slow motion) is a view of time, not physics, so it is always available.
     const ts = document.createElement('div');
-    ts.className = 'field';
+    ts.className = 'field field-select';
     ts.innerHTML = `<label class="f-label"><span class="f-sym">⏱</span><span class="f-name">playback speed</span></label>
       <select aria-label="playback speed"><option value="0.1">0.1×</option><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1">1×</option><option value="2">2×</option></select>`;
     const sel = ts.querySelector('select');
@@ -296,7 +298,7 @@ export class Inspector {
       if (!this.sim.world.get(e.id)) return;
       const rows = (DERIVED[e.kind] ?? (() => []))(this.sim.world, e);
       for (const d of this.derivedEls) {
-        const text = rows[d.i]?.[2] ?? '';
+        const text = rows.find((r) => r[0] === d.key)?.[2] ?? '';
         if (d.el.textContent !== text) d.el.textContent = text.replace('-', '−');
       }
     }

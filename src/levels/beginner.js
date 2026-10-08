@@ -49,7 +49,7 @@ export const beginner = [
     gravityParam: false,
     build(w) {
       ground(w, { friction: 0.3, restitution: 0.3 });
-      const ball = w.addBody({ shape: 'ball', name: 'ball', pos: { x: -4, y: 0.3 }, radius: 0.3, mass: 1, friction: 0, restitution: 0.5, style: { protected: true } });
+      const ball = w.addBody({ shape: 'ball', name: 'ball', pos: { x: -4, y: 0.3 }, radius: 0.3, mass: 1, friction: 0.02, restitution: 0.5, style: { protected: true } });
       const box = w.addBody({ shape: 'box', name: 'box', pos: { x: 0, y: 0.4 }, w: 0.8, h: 0.8, mass: 1, friction: 0.4, restitution: 0.5, style: { protected: true } });
       const P = w.addBody({ shape: 'point', name: 'P', pos: { x: -2, y: 0.3 }, fixed: true, collide: false, locked: true });
       return { ball: ball.id, box: box.id, P: P.id };
@@ -61,7 +61,7 @@ export const beginner = [
       }
     },
     zones: ({ world, state }) => {
-      const z = { xmin: 2.5, xmax: 4.5, ymin: 0, ymax: 1.1 };
+      const z = { xmin: 2.5, xmax: 4, ymin: 0, ymax: 1.1 };
       const box = world.get(state.box);
       return [{ type: 'rect', key: 'goal', ...z, label: 'goal', reached: inRect(box.pos, z) && V.len(box.vel) < 0.05 }];
     },
@@ -69,7 +69,7 @@ export const beginner = [
       { id: 'bump', text: 'Press <b>▶ Run</b>: the ball bumps the box (but passes through P).', check: ({ state }) => state.runtime.hit },
       {
         id: 'zone', text: 'Make the box slide into the goal. <i>Hint: a heavier ball hits harder.</i>',
-        check: ({ world, state, sim }) => sim.started && inRect(world.get(state.box).pos, { xmin: 2.5, xmax: 4.5, ymin: 0, ymax: 1.1 }) && V.len(world.get(state.box).vel) < 0.05,
+        check: ({ world, state, sim }) => sim.started && inRect(world.get(state.box).pos, { xmin: 2.5, xmax: 4, ymin: 0, ymax: 1.1 }) && V.len(world.get(state.box).vel) < 0.05,
       },
     ],
     equations: ({ world, state }) => {
@@ -137,7 +137,7 @@ export const beginner = [
       const Bp = w.addBody({ shape: 'point', name: 'B', pos: { x: 0.5, y: 0.2 }, collide: false, style: { protected: true } });
       return { A: A.id, B: Bp.id };
     },
-    program: () => ({ scripts: [script(B('whenFlag'), B('say', { body: 'A', msg: 'B is {hypot(B.x - A.x, B.y - A.y)} m away' }))] }),
+    program: () => ({ scripts: [script(B('whenFlag'), B('say', { body: 'A', msg: '{hypot(B.x-A.x, B.y-A.y)} m to B' }))] }),
     annotations: ({ world, state }) => {
       const a = world.get(state.A).pos, b = world.get(state.B).pos;
       const corner = { x: b.x, y: a.y };
@@ -179,6 +179,7 @@ export const beginner = [
     tools: ['select'],
     blocks: ['whenFlag', 'setVel', 'wait', 'hold', 'say'],
     inspect: ['body.vx', 'body.mass'],
+    derived: ['speed'],
     gravityParam: false,
     build(w) {
       ground(w, { friction: 0, restitution: 0 });
@@ -225,6 +226,7 @@ export const beginner = [
     tools: ['select'],
     blocks: ['whenFlag', 'wait', 'toggleForce', 'setForce', 'say'],
     inspect: ['body.mass', 'body.friction', 'force.fx', 'force.enabled'],
+    derived: ['speed', 'net force'],
     gravityParam: false,
     build(w) {
       ground(w, { friction: 0.5, restitution: 0 });
@@ -256,8 +258,8 @@ export const beginner = [
       const fmax = mu * support;
       const p = push.enabled ? push.vec.x : 0;
       return [
-        { key: 'fmax', label: 'friction can hold up to', tex: `${N(mu)} × ${N(support, 1)} N = ${N(fmax, 1)} N`, refs: [box.id] },
-        { key: 'cmp', label: 'push vs. friction', tex: p > fmax ? `${N(p, 1)} N > ${N(fmax, 1)} N → it slides` : `${N(p, 1)} N ≤ ${N(fmax, 1)} N → friction wins`, refs: [state.push], ok: p > fmax },
+        { key: 'fmax', label: 'friction can hold up to', tex: `${N(mu)} × ${N(support)} N = ${N(fmax)} N`, refs: [box.id] },
+        { key: 'cmp', label: 'push vs. friction', tex: p > fmax ? `${N(p)} N > ${N(fmax)} N → it slides` : `${N(p)} N ≤ ${N(fmax)} N → friction wins`, refs: [state.push], ok: p > fmax },
       ];
     },
   },
@@ -276,6 +278,7 @@ export const beginner = [
     tools: ['select'],
     blocks: ['whenFlag', 'setGravity', 'setPos', 'wait', 'say', 'setMass'],
     inspect: ['body.mass', 'body.x', 'body.y'],
+    derived: ['speed'],
     build(w) {
       ground(w, { friction: 0.8, restitution: 0.2 });
       w.addSegment({ a: { x: 2.5, y: 0 }, b: { x: 2.5, y: 0.6 }, name: 'basketL', style: { hatch: false }, restitution: 0.1 });
@@ -303,9 +306,33 @@ export const beginner = [
     equations: ({ world, state }) => {
       const b = world.get(state.ball);
       const g = -world.gravity.y;
-      const rows = [{ key: 'W', label: 'weight', tex: `mass × $g$ = ${N(b.mass, 1)} kg × ${N(g)} m/s² = ${N(b.mass * g, 1)} N`, refs: [`fbd:${b.id}:W`] }];
+      const rows = [{ key: 'W', label: 'weight', tex: `mass × $g$ = ${N(b.mass, 1)} kg × ${N(g)} m/s² = ${N(b.mass * g)} N`, refs: [`fbd:${b.id}:W`] }];
       if (state.runtime.landed) rows.push({ key: 't', label: 'fall time', tex: `${N(state.runtime.landed.t)} s`, refs: ['basket'] });
       return rows;
     },
+  },
+
+  // ------------------------------------------------------------ playground
+  {
+    id: 'b8-playground', tier: 1, fig: 'B8', title: 'Playground', concept: 'Free play', sandbox: true,
+    intro: [
+      'Build anything you like. Pick a tool above the stage, then click in the scene: add balls, boxes and points, connect them with springs, and give them pushes.',
+      'Program them with any block, press <b>▶ Run</b>, and <b>↺ Reset</b> to go back to your setup.',
+    ],
+    view: { xmin: -6, xmax: 6, ymin: -0.8, ymax: 5.2 },
+    features: { forces: 'applied', trails: 'line', scaleBar: true },
+    tools: ['select', 'ball', 'box', 'point', 'spring', 'force', 'pin', 'delete'],
+    derived: ['speed', 'net force', 'length', 'stretch', 'force'],
+    build(w) {
+      ground(w, { friction: 0.4, restitution: 0.5 });
+      w.addBody({ shape: 'ball', name: 'ball', pos: { x: -4, y: 0.3 }, radius: 0.3, trail: true, restitution: 0.7 });
+      w.addBody({ shape: 'box', name: 'box', pos: { x: 1.5, y: 0.35 }, w: 0.7, h: 0.7, mass: 1 });
+      const hook = w.addBody({ shape: 'point', name: 'hook', pos: { x: 4, y: 4.5 }, fixed: true });
+      const bob = w.addBody({ shape: 'ball', name: 'bob', pos: { x: 4, y: 2.6 }, radius: 0.25, mass: 1, trail: true });
+      w.addSpring({ a: hook.id, b: bob.id, k: 30, rest: 1.4, name: 'spring' });
+      return {};
+    },
+    program: () => ({ scripts: [script(B('whenFlag'), B('setVel', { body: 'ball', vx: '4', vy: '5' }))] }),
+    goals: [],
   },
 ];

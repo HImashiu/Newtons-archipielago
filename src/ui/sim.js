@@ -169,6 +169,7 @@ export class Sim {
 
   /** Advance by real elapsed seconds (called from requestAnimationFrame). */
   update(realDt) {
+    if (!this.running) this.previewForces();
     if (this.running) {
       this.acc += Math.min(realDt, 0.1) * this.timeScale;
       let n = 0;
@@ -181,6 +182,25 @@ export class Sim {
     }
     this.checkGoals();
     for (const [id, b] of this.bubbles) if (b.until < this.world.time && this.started) this.bubbles.delete(id);
+  }
+
+  /**
+   * While stopped or paused, show the forces that would act right now by
+   * stepping a throw-away copy of the world one frame. Learners can then see
+   * and drag force vectors before pressing Run.
+   */
+  previewForces() {
+    const f = this.features;
+    if ((!f.forces || f.forces === 'off') && !f.net && !f.acceleration) return;
+    const probe = new World();
+    probe.restore(this.world.snapshot());
+    probe.step(FRAME);
+    for (const b of this.world.bodies) {
+      const pb = probe.get(b.id);
+      if (!pb) continue;
+      b._fbd = pb._fbd;
+      b._acc = pb._acc;
+    }
   }
 
   frame() {

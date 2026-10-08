@@ -56,7 +56,7 @@ export const BLOCKS = {
   stop: { cat: 'control', shape: 'stack', cap: true, text: 'pause simulation' },
 
   // output -----------------------------------------------------------------
-  say: { cat: 'output', shape: 'stack', text: '{body:body} says {msg:text}', defaults: { msg: 'v = {ball.speed} m/s' } },
+  say: { cat: 'output', shape: 'stack', text: '{body:body} says {msg:text}', defaults: { msg: 'Hello!' } },
   trace: { cat: 'output', shape: 'stack', text: 'trace path of {body:body} {on:onoff}', defaults: { on: 'on' } },
   plot: { cat: 'output', shape: 'stack', text: 'plot {value:num} as {name:text}', defaults: { value: 'ball.y', name: 'height' } },
 };

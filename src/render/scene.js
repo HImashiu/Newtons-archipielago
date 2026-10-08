@@ -109,6 +109,10 @@ class SceneContext {
         }
       }
     }
+    // Keep labels inside the stage.
+    const bb = box(p);
+    if (bb.x0 < 4) p = { x: p.x + 4 - bb.x0, y: p.y };
+    else if (bb.x1 > this.cam.W - 4) p = { x: p.x - (bb.x1 - this.cam.W + 4), y: p.y };
     this.placed.push(box(p));
     const attrs = {
       x: p.x, y: p.y, 'text-anchor': anchor, class: opts.cls ?? 'lbl',
@@ -677,7 +681,7 @@ class SceneContext {
 
   ann_refline(a) {
     const pa = this.S(a.a), pb = this.S(a.b);
-    this.P.el('annotations', `ref-${a.key}`, 'path', { d: D.line(pa, pb), class: `refline${a.cls ? ' ' + a.cls : ''}`, 'data-ref': a.ref });
+    this.P.el('trails', `ref-${a.key}`, 'path', { d: D.line(pa, pb), class: `refline${a.cls ? ' ' + a.cls : ''}`, 'data-ref': a.ref });
     if (a.text) this.label('labels', `refl-${a.key}`, V.addScaled(pb, V.norm(V.sub(pb, pa)), 10), a.text, { anchor: pb.x >= pa.x ? 'start' : 'end', cls: 'lbl muted' });
   }
 
@@ -700,16 +704,19 @@ class SceneContext {
     const u = V.norm(V.sub(pb, pa)), n = V.perp(u);
     const tick = (p) => D.line(V.addScaled(p, n, 7), V.addScaled(p, n, -7));
     const cls = this.cls('distance', a.ref, a.key);
-    this.P.el('annotations', `dist-${a.key}`, 'path', { d: D.line(pa, pb) + tick(pa) + tick(pb), class: cls, 'data-ref': a.ref ?? a.key });
+    this.P.el('trails', `dist-${a.key}`, 'path', { d: D.line(pa, pb) + tick(pa) + tick(pb), class: cls, 'data-ref': a.ref ?? a.key });
     const mid = V.lerp(pa, pb, 0.5);
     const side = n.y > 0 ? -1 : 1;
-    this.label('labels', `distl-${a.key}`, V.addScaled(mid, n, side * 14), a.text, { ref: a.ref ?? a.key, cls: 'lbl distance-lbl', nudge: V.scale(n, side) });
+    // Offset so the whole text box clears the line, whatever its slope.
+    const w = estimateWidth(a.text, this.fontSize);
+    const clear = (w / 2) * Math.abs(n.x) + this.fontSize * 0.55 * Math.abs(n.y) + 6;
+    this.label('labels', `distl-${a.key}`, V.add(V.addScaled(mid, n, side * clear), { x: 0, y: this.fontSize * 0.35 }), a.text, { ref: a.ref ?? a.key, cls: 'lbl distance-lbl', nudge: V.scale(n, side) });
   }
 
   ann_coord(a) {
     const p = this.S(a.p);
     const o = this.S({ x: 0, y: 0 });
-    this.P.el('annotations', `crd-${a.key}`, 'path', { d: `M${D.pt(p)}V${o.y.toFixed(1)}M${D.pt(p)}H${o.x.toFixed(1)}`, class: 'construction coord', 'data-ref': a.ref });
+    this.P.el('trails', `crd-${a.key}`, 'path', { d: `M${D.pt(p)}V${o.y.toFixed(1)}M${D.pt(p)}H${o.x.toFixed(1)}`, class: 'construction coord', 'data-ref': a.ref });
     this.P.el('annotations', `crdx-${a.key}`, 'text', { x: p.x, y: o.y + 30, 'text-anchor': 'middle', class: 'lbl coord-lbl', 'font-size': 12 }, mathMarkup(`$x$ = ${fmt(a.p.x)}`, 12));
     this.P.el('annotations', `crdy-${a.key}`, 'text', { x: o.x - 30, y: p.y + 4, 'text-anchor': 'end', class: 'lbl coord-lbl', 'font-size': 12 }, mathMarkup(`$y$ = ${fmt(a.p.y)}`, 12));
   }
@@ -790,7 +797,7 @@ class SceneContext {
       const c = this.S(b.pos);
       const r = b.shape === 'ball' ? b.radius * this.cam.scale : b.shape === 'box' ? b.h * this.cam.scale / 2 : 6;
       const w = estimateWidth(text, 13) + 18;
-      const x = c.x + r * 0.5, y = c.y - r - 40;
+      const x = c.x + r * 0.6 + 4, y = c.y - r - 62;
       this.P.el('bubbles', `bub-${id}`, 'path', {
         d: `M${x},${y}h${w}a6,6 0 0 1 6,6v14a6,6 0 0 1 -6,6h${-(w - 22)}l-10,10l2,-10h-14a6,6 0 0 1 -6,-6v-14a6,6 0 0 1 6,-6z`,
         class: 'bubble',

@@ -9,15 +9,15 @@ import { line as dLine } from '../render/draft.js';
 import { fmt } from '../render/mathtext.js';
 
 export const TOOLS = {
-  select: { label: 'Select & move', icon: 'M5 3l12 9-5 1 3 6-2 1-3-6-4 3z' },
-  point: { label: 'Add point', icon: 'M12 9a3 3 0 1 1 0 6a3 3 0 1 1 0-6' },
-  ball: { label: 'Add ball', icon: 'M12 4a8 8 0 1 1 0 16a8 8 0 1 1 0-16' },
-  box: { label: 'Add box', icon: 'M5 7h14v10H5z' },
-  spring: { label: 'Connect with spring', icon: 'M3 12h3l2-5 3 10 3-10 3 10 2-5h2' },
-  rod: { label: 'Connect with rod', icon: 'M5 17L19 7M5 17a2 2 0 1 1 0 .1M19 7a2 2 0 1 1 0 .1' },
-  force: { label: 'Add a force', icon: 'M4 12h13M13 7l5 5-5 5' },
-  pin: { label: 'Pin / unpin', icon: 'M12 5v9M8 14h8l-4 5z' },
-  delete: { label: 'Delete', icon: 'M6 7h12M9 7V5h6v2M8 7l1 12h6l1-12' },
+  select: { label: 'Select & move', short: 'Move', icon: 'M5 3l12 9-5 1 3 6-2 1-3-6-4 3z' },
+  point: { label: 'Add point', short: 'Point', icon: 'M12 9a3 3 0 1 1 0 6a3 3 0 1 1 0-6' },
+  ball: { label: 'Add ball', short: 'Ball', icon: 'M12 4a8 8 0 1 1 0 16a8 8 0 1 1 0-16' },
+  box: { label: 'Add box', short: 'Box', icon: 'M5 7h14v10H5z' },
+  spring: { label: 'Connect with spring', short: 'Spring', icon: 'M3 12h3l2-5 3 10 3-10 3 10 2-5h2' },
+  rod: { label: 'Connect with rod', short: 'Rod', icon: 'M5 17L19 7M5 17a2 2 0 1 1 0 .1M19 7a2 2 0 1 1 0 .1' },
+  force: { label: 'Add a force', short: 'Force', icon: 'M4 12h13M13 7l5 5-5 5' },
+  pin: { label: 'Pin / unpin', short: 'Pin', icon: 'M12 5v9M8 14h8l-4 5z' },
+  delete: { label: 'Delete', short: 'Delete', icon: 'M6 7h12M9 7V5h6v2M8 7l1 12h6l1-12' },
 };
 
 export class Stage {
@@ -71,7 +71,11 @@ export class Stage {
     const lvl = this.sim.level;
     if (!lvl) return;
     const b = lvl.view ?? { xmin: -5, xmax: 5, ymin: -1, ymax: 5 };
-    this.camera.fit(b, 30);
+    const margin = 30;
+    this.camera.fit(b, margin);
+    // Scenes with a floor sit at the bottom of the stage, with sky above.
+    const anchor = b.anchor ?? (this.sim.world.segments.length ? 'bottom' : 'center');
+    if (anchor === 'bottom') this.camera.cy = b.ymin + (this.camera.H / 2 - margin) / this.camera.scale;
     this.fitOnResize = true;
   }
 
@@ -159,7 +163,12 @@ export class Stage {
   }
 
   hitOf(e) {
-    const el = e.target.closest?.('[data-hit]');
+    let el = e.target.closest?.('[data-hit]');
+    if (!el) {
+      // Vectors and labels are drawn on top but are not grab targets: look
+      // through them to the object underneath.
+      el = document.elementsFromPoint(e.clientX, e.clientY).find((n) => this.svg.contains(n) && n.closest('[data-hit]'))?.closest('[data-hit]');
+    }
     if (!el) return null;
     const raw = el.getAttribute('data-hit');
     const i = raw.indexOf(':');
