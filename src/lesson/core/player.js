@@ -16,6 +16,12 @@ import { mathHtml } from '../../render/mathtext.js';
 const DO_WEIGHT = 3.2; // timeline width of an interactive beat, in "seconds"
 const SPEEDS = [1, 1.25, 1.5, 0.75];
 
+// Interface words; a lesson may override them (e.g. ui: { chapter: 'Capítulo' }).
+const UI = {
+  chapter: 'Chapter', yourTurn: 'Your turn', nextStep: 'Next step', cont: 'Continue', check: 'Check',
+  skip: 'Skip this step', play: 'Play', pause: 'Pause', speed: 'Playback speed',
+};
+
 /** Seconds a learner needs to read a caption (≈ 150 words per minute + a beat). */
 export function readTime(text) {
   const words = String(text).replace(/<[^>]*>/g, ' ').replace(/\$/g, '').split(/\s+/).filter(Boolean).length;
@@ -84,6 +90,8 @@ export class Player {
     this.speedBtn = $('.speed');
     this.chapterCard = $('.chapter-card');
     this.ink = new Ink(this.svg);
+    this.ui = { ...UI, ...(lesson.ui ?? {}) };
+    this.skipBtn.textContent = this.ui.skip;
 
     this.buildTimeline();
     this.bindInput();
@@ -122,10 +130,12 @@ export class Player {
     this.mountPanel();
     this.mountOverlay();
     if (changed && seg.bi === 0 && seg.kind !== 'card' && this.chapterCard) {
-      this.chapterCard.innerHTML = `<span class="cc-num">Chapter ${seg.ch.num}</span><span class="cc-title">${seg.ch.title}</span>`;
+      this.chapterCard.innerHTML = `<span class="cc-num">${this.ui.chapter} ${seg.ch.num}</span><span class="cc-title">${seg.ch.title}</span>`;
       this.chapterCard.classList.remove('is-on');
       void this.chapterCard.offsetWidth;
       this.chapterCard.classList.add('is-on');
+    } else if (changed && seg.kind === 'card' && this.chapterCard) {
+      this.chapterCard.classList.remove('is-on');
     }
     this.renderCaption(true);
     this.updateTimeline();
@@ -271,7 +281,7 @@ export class Player {
       this.captionEl.classList.add('is-in');
     }
     const prompt = seg.kind === 'do' && !this.successShown ? (typeof seg.prompt === 'function' ? seg.prompt(this.S) : seg.prompt) : null;
-    const promptHtml = prompt ? `<span class="your-turn">Your turn</span><span class="prompt-text">${mathify(prompt)}</span>` : '';
+    const promptHtml = prompt ? `<span class="your-turn">${this.ui.yourTurn}</span><span class="prompt-text">${mathify(prompt)}</span>` : '';
     if (force || promptHtml !== this.lastPrompt) {
       this.lastPrompt = promptHtml;
       this.promptEl.innerHTML = promptHtml;
@@ -280,7 +290,7 @@ export class Player {
     const paused = seg.kind === 'watch' && seg.pause && this.t >= seg.dur;
     const showContinue = ((seg.kind === 'do' && this.successShown) || paused) && this.i < this.segs.length - 1;
     this.continueBtn.hidden = !showContinue;
-    this.continueBtn.querySelector('.label').textContent = seg.continueLabel ?? (paused ? 'Next step' : 'Continue');
+    this.continueBtn.querySelector('.label').textContent = seg.continueLabel ?? (paused ? this.ui.nextStep : this.ui.cont);
     this.renderControls(force);
     this.skipBtn.hidden = !(seg.kind === 'do' && !this.successShown && seg.skippable !== false);
     this.root.classList.toggle('is-success', seg.kind === 'do' && this.successShown);
@@ -313,7 +323,7 @@ export class Player {
     this.choicesEl.innerHTML = ctrls.map((c) => {
       if (c.type === 'number') {
         const v = this.numValues[`${seg.index}:${c.id}`] ?? '';
-        return `<span class="num-entry${c.state ? ` is-${c.state}` : ''}" data-id="${c.id}">${c.label ? `<span class="ne-label">${mathify(c.label)}</span>` : ''}<input inputmode="decimal" autocomplete="off" spellcheck="false" value="${v}" aria-label="${(c.aria ?? c.label ?? 'answer').replace(/[$"<>]/g, '')}"${c.disabled ? ' disabled' : ''}><span class="ne-unit">${c.unit ?? ''}</span><button type="button" class="ne-check"${c.disabled ? ' disabled' : ''}>Check</button></span>`;
+        return `<span class="num-entry${c.state ? ` is-${c.state}` : ''}" data-id="${c.id}">${c.label ? `<span class="ne-label">${mathify(c.label)}</span>` : ''}<input inputmode="decimal" autocomplete="off" spellcheck="false" value="${v}" aria-label="${(c.aria ?? c.label ?? 'answer').replace(/[$"<>]/g, '')}"${c.disabled ? ' disabled' : ''}><span class="ne-unit">${c.unit ?? ''}</span><button type="button" class="ne-check"${c.disabled ? ' disabled' : ''}>${this.ui.check}</button></span>`;
       }
       if (c.type === 'button') return `<button type="button" class="ctrl-btn${c.primary ? ' primary' : ''}" data-id="${c.id}"${c.disabled ? ' disabled' : ''}>${mathify(c.label)}</button>`;
       return `<button type="button" class="choice${c.state ? ` is-${c.state}` : ''}" data-id="${c.id}"${c.disabled ? ' disabled' : ''}>${mathify(c.label)}</button>`;
@@ -401,7 +411,7 @@ export class Player {
         el.className = `tl-seg tl-${s.kind}`;
         el.style.flexGrow = String(this.segWeight(s));
         el.innerHTML = s.kind === 'do' ? '<span class="tl-fill"></span><span class="tl-diamond"></span>' : '<span class="tl-fill"></span>';
-        el.title = s.kind === 'do' ? 'Your turn' : '';
+        el.title = s.kind === 'do' ? this.ui.yourTurn : '';
         track.append(el);
         this.segEls[s.index] = el;
       }
@@ -473,7 +483,7 @@ export class Player {
     const watch = this.seg.kind === 'watch';
     this.playBtn.disabled = !watch;
     this.playBtn.classList.toggle('is-playing', watch && this.playing);
-    this.playBtn.setAttribute('aria-label', watch && this.playing ? 'Pause' : 'Play');
+    this.playBtn.setAttribute('aria-label', watch && this.playing ? this.ui.pause : this.ui.play);
   }
 
   // ---------------------------------------------------------------- input
@@ -483,7 +493,7 @@ export class Player {
     this.speedBtn?.addEventListener('click', () => {
       this.speed = SPEEDS[(SPEEDS.indexOf(this.speed) + 1) % SPEEDS.length];
       this.speedBtn.textContent = `${this.speed}×`;
-      this.speedBtn.setAttribute('aria-label', `Playback speed ${this.speed}×`);
+      this.speedBtn.setAttribute('aria-label', `${this.ui.speed} ${this.speed}×`);
     });
     this.continueBtn.addEventListener('click', () => this.next());
     this.skipBtn.addEventListener('click', () => {

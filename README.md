@@ -6,7 +6,7 @@ ink, Computer Modern), plays as a sequence of short narrated beats, and stops
 whenever it is the learner's turn to predict, drag, build or run something.
 Every drawing is a live, manipulable model, not an illustration.
 
-Two lessons so far (pick one from the header menu, or with `?lesson=`):
+Lessons so far (pick one from the header menu, or with `?lesson=`):
 
 - **Lesson 1 — Describing Motion** (`?lesson=motion`): position, motion
   diagrams, position–time graphs, velocity as slope, and the update rule
@@ -16,6 +16,24 @@ Two lessons so far (pick one from the header menu, or with `?lesson=`):
   shear and moment diagrams, with worked examples, guided steps and a
   generated problem set that ends at four correct in a row. Script:
   [`docs/lesson-statics-s2-s3-script.md`](docs/lesson-statics-s2-s3-script.md).
+
+- **Biofísica · Unidad 2 (en español)** — biofísica cardiovascular y
+  respiratoria, from the Universidad del Norte medicine course (weeks 7–11),
+  in four lessons with worked clinical cases and mastery practice sets.
+  Script and answer key: [`docs/biofisica-unidad-2-guion.md`](docs/biofisica-unidad-2-guion.md).
+  - **B.1 Presión en los fluidos** (`#presion`): *P* = *F*/*A*, density,
+    *P* = *P*₀ + *ρgh*, U-tube, Pascal, posture and blood pressure, PAM,
+    pressure along the circuit, Korotkoff sounds.
+  - **B.2 La pared del vaso** (`#pared`): stress and strain, compliance and
+    distensibility, the aorta as a Windkessel, Laplace and aneurysms, pulse
+    wave velocity, a concept-matching activity.
+  - **B.3 Flujo, continuidad y Bernoulli** (`#flujo`): flow rate, continuity
+    from aorta to capillaries, Venturi/Bernoulli, Reynolds number, viscosity
+    and hematocrit.
+  - **B.4 Resistencia y ley de Poiseuille** (`#poiseuille`): *Q* = Δ*P*/*R*,
+    Poiseuille and the *r*⁴ cases (asthma, carotid and coronary stenosis),
+    polycythemia, shock and selective vasoconstriction, series/parallel,
+    Boyle's law for breathing.
 
 ## Run it
 
@@ -29,7 +47,8 @@ npm test           # physics, rule-tile, expression and interpreter tests
 Then open http://localhost:8080. Jump to a chapter with `?chapter=<id>`
 (`where`, `when`, `graphs`, `velocity`, `rule`, `challenge`, `summary`).
 
-A lesson can also be chosen with a bare anchor: `#motion` or `#beam`.
+A lesson can also be chosen with a bare anchor: `#motion`, `#beam`, `#presion`,
+`#pared`, `#flujo` or `#poiseuille`.
 
 To package the player as a single shareable page (fonts embedded):
 `node scripts/build-artifact.mjs dist/artifact`.
@@ -76,6 +95,9 @@ src/lesson/
   core/workpanel.js  step-by-step working beside the drawing
   s2/beam.js       beam solver: reactions, V(x), M(x), diagram samples
   s2/statics.js    Statics S.2–S.3, including the generated practice set
+  bio/kit.js       biophysics kit: Spanish UI and number format, tanks, gauges,
+                   human figure, vessels with moving cells, plots, practice sets
+  bio/b1-presion.js … b4-poiseuille.js   the four Spanish biophysics lessons
 src/physics/       XPBD engine used by the sandbox prototype (and later lessons)
 docs/              lesson scripts
 assets/fonts/      Computer Modern (CMU Serif) and Inter, both SIL OFL

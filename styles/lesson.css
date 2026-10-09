@@ -73,6 +73,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .chapter-label { justify-self: end; font: 400 17px var(--serif); color: var(--ink-2); display: flex; gap: 10px; align-items: baseline; }
 .ch-num { font: 600 11px var(--sans); color: var(--ink-3); letter-spacing: 1px; }
 .ch-num:not(:empty)::before { content: "CH. "; }
+.lx:lang(es) .ch-num:not(:empty)::before, :lang(es) .ch-num:not(:empty)::before { content: "CAP. "; }
 
 /* ------------------------------------------------------------- stage body */
 
@@ -222,6 +223,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .ideas .n { font: 400 16px var(--serif); width: 26px; height: 26px; border: 1px solid var(--ink); border-radius: 50%; display: grid; place-items: center; }
 .next-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 30px; border-top: 1px solid var(--ink); padding-top: 18px; flex-wrap: wrap; }
 .next-lesson { font: 400 17px var(--serif); display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.cm-next { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--ink); }
+.cm-next:hover { color: var(--accent); border-color: var(--accent); }
 .soon { font: 500 11px var(--sans); color: var(--ink-3); border: 1px solid var(--hair); border-radius: 999px; padding: 2px 8px; }
 .ghost-btn { border: 1px solid var(--ink); background: var(--paper); border-radius: 999px; padding: 8px 18px; font: 500 13.5px var(--sans); }
 .ghost-btn:hover { background: var(--ink); color: var(--paper); }
@@ -398,6 +401,24 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .ink.bad-diag { stroke: var(--accent); }
 .accent.heavy { stroke-width: 2.2; }
 .accent.head { fill: var(--accent); stroke: none; }
+
+/* biophysics drawing */
+.fluid { fill: rgba(31, 87, 201, 0.09); stroke: none; }
+.fluid-2 { fill: rgba(176, 128, 40, 0.16); stroke: none; }
+.fluid-3 { fill: rgba(31, 87, 201, 0.2); stroke: none; }
+.blood { fill: rgba(226, 71, 27, 0.07); stroke: none; }
+.blood-2 { fill: rgba(226, 71, 27, 0.16); stroke: none; }
+.gauge { fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; }
+.heart { fill: var(--accent); stroke: none; }
+.stream { fill: none; stroke: var(--blue); stroke-width: 0.9; opacity: 0.45; }
+.cell { fill: var(--accent); stroke: none; opacity: 0.75; }
+.cell-blue { fill: var(--blue); stroke: none; opacity: 0.8; }
+.plaque { fill: #efe2c4; stroke: var(--ink); stroke-width: 1.2; }
+.piston { fill: var(--part); stroke: var(--ink); stroke-width: 1.5; }
+.wave { fill: none; stroke: var(--accent); stroke-width: 2.2; stroke-linejoin: round; }
+.wave-2 { fill: none; stroke: var(--blue); stroke-width: 2; stroke-linejoin: round; }
+.ok-tx-serif { fill: var(--ok); }
+.band { fill: var(--accent-wash); stroke: none; }
 
 /* ------------------------------------------------------------- responsive */
 

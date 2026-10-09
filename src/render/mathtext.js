@@ -52,9 +52,15 @@ function mathRuns(src, out, style) {
       mathRuns(arg, out, { ...style, shift });
       continue;
     }
+    if (c === 'Δ') {
+      // Difference operator: upright, and never part of a word.
+      out.push({ text: c, ...style, italic: false });
+      i++;
+      continue;
+    }
     if (LETTER.test(c)) {
       let j = i;
-      while (j < src.length && LETTER.test(src[j])) j++;
+      while (j < src.length && LETTER.test(src[j]) && src[j] !== 'Δ') j++;
       const word = src.slice(i, j);
       if (word.length === 1 || style.vector) out.push({ text: word, ...style, italic: style.italic ?? true });
       else out.push({ text: word, ...style, italic: false });
