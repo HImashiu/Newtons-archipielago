@@ -29,6 +29,11 @@ npm test           # physics, rule-tile, expression and interpreter tests
 Then open http://localhost:8080. Jump to a chapter with `?chapter=<id>`
 (`where`, `when`, `graphs`, `velocity`, `rule`, `challenge`, `summary`).
 
+A lesson can also be chosen with a bare anchor: `#motion` or `#beam`.
+
+To package the player as a single shareable page (fonts embedded):
+`node scripts/build-artifact.mjs dist/artifact`.
+
 Controls: **Space** play/pause, **← / →** previous/next beat, **Enter**
 continue. Drag on the timeline to scrub; click the drawing to pause.
 

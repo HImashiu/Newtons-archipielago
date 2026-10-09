@@ -9,9 +9,12 @@ export const COURSE = [
   { unit: 'Statics · Beams', lessons: [{ id: 'beam', code: 'S.2–S.3', title: 'Inside a Beam', lesson: statics }] },
 ];
 
+// A lesson is chosen with a bare #anchor (works in shared links) or ?lesson=.
 const params = new URLSearchParams(location.search);
 const all = COURSE.flatMap((u) => u.lessons);
-const entry = all.find((l) => l.id === params.get('lesson')) ?? all[0];
+const wanted = location.hash.replace('#', '') || params.get('lesson');
+const entry = all.find((l) => l.id === wanted) ?? all[0];
+window.addEventListener('hashchange', () => location.reload());
 
 document.querySelector('.lx-lesson').textContent = entry.code;
 document.querySelector('.lx-name').textContent = entry.title;
@@ -21,7 +24,7 @@ document.title = `${entry.title} — Scratch Physics`;
 const menu = document.querySelector('.course-menu');
 const toggle = document.querySelector('.lx-title');
 menu.innerHTML = COURSE.map((u) => `<div class="cm-unit">${u.unit}</div>${u.lessons.map((l) =>
-  `<a class="cm-lesson${l === entry ? ' is-current' : ''}" href="?lesson=${l.id}"><span class="cm-code">${l.code}</span>${l.title}</a>`).join('')}`).join('');
+  `<a class="cm-lesson${l === entry ? ' is-current' : ''}" href="#${l.id}"><span class="cm-code">${l.code}</span>${l.title}</a>`).join('')}`).join('');
 toggle.addEventListener('click', (e) => {
   e.stopPropagation();
   menu.hidden = !menu.hidden;
