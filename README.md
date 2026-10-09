@@ -17,23 +17,24 @@ Lessons so far (pick one from the header menu, or with `?lesson=`):
   generated problem set that ends at four correct in a row. Script:
   [`docs/lesson-statics-s2-s3-script.md`](docs/lesson-statics-s2-s3-script.md).
 
-- **Biofísica · Unidad 2 (en español)** — biofísica cardiovascular y
-  respiratoria, from the Universidad del Norte medicine course (weeks 7–11),
-  in four lessons with worked clinical cases and mastery practice sets.
-  Script and answer key: [`docs/biofisica-unidad-2-guion.md`](docs/biofisica-unidad-2-guion.md).
-  - **B.1 Presión en los fluidos** (`#presion`): *P* = *F*/*A*, density,
-    *P* = *P*₀ + *ρgh*, U-tube, Pascal, posture and blood pressure, PAM,
-    pressure along the circuit, Korotkoff sounds.
-  - **B.2 La pared del vaso** (`#pared`): stress and strain, compliance and
-    distensibility, the aorta as a Windkessel, Laplace and aneurysms, pulse
-    wave velocity, a concept-matching activity.
-  - **B.3 Flujo, continuidad y Bernoulli** (`#flujo`): flow rate, continuity
-    from aorta to capillaries, Venturi/Bernoulli, Reynolds number, viscosity
-    and hematocrit.
-  - **B.4 Resistencia y ley de Poiseuille** (`#poiseuille`): *Q* = Δ*P*/*R*,
-    Poiseuille and the *r*⁴ cases (asthma, carotid and coronary stenosis),
-    polycythemia, shock and selective vasoconstriction, series/parallel,
-    Boyle's law for breathing.
+- **Biofísica · Presión (en español)**: the Universidad del Norte medicine
+  course, week 7, as five learner-paced lessons that build each idea from a
+  question, an experiment or a guided derivation, fade worked examples into
+  independent problems and end with mastery practice. Guide:
+  [`docs/biofisica-presion-guion.md`](docs/biofisica-presion-guion.md).
+  - **1.1 ¿Qué es la presión?** (`#presion`): discover *P* = *F*/*A* from a
+    foam experiment you record yourself; needles, heels and bedsores.
+  - **1.2 Presión y profundidad** (`#profundidad`): build *P* = *P*₀ + *ρgh*
+    step by step, measure it, the hydrostatic paradox, faded examples.
+  - **1.3 Medir la presión** (`#manometros`): Torricelli, where 133,3 Pa per
+    mmHg comes from, manometers, Pascal, how the cuff works.
+  - **1.4 La sangre y la gravedad** (`#gravedad`): posture, the hanging-arm
+    measurement error, the causal chain of orthostatic hypotension, veins.
+  - **1.5 Presión arterial** (`#arterial`): read the waveform, find the mean
+    by balancing areas, take a reading with a deflating-cuff simulator.
+- **Biofísica · pared, flujo y resistencia** (`#pared`, `#flujo`,
+  `#poiseuille`): shorter first versions of weeks 7–11, still to be rebuilt
+  in the same way. Script: [`docs/biofisica-unidad-2-guion.md`](docs/biofisica-unidad-2-guion.md).
 
 ## Run it
 
@@ -47,8 +48,8 @@ npm test           # physics, rule-tile, expression and interpreter tests
 Then open http://localhost:8080. Jump to a chapter with `?chapter=<id>`
 (`where`, `when`, `graphs`, `velocity`, `rule`, `challenge`, `summary`).
 
-A lesson can also be chosen with a bare anchor: `#motion`, `#beam`, `#presion`,
-`#pared`, `#flujo` or `#poiseuille`.
+A lesson can also be chosen with a bare anchor, e.g. `#motion`, `#beam`,
+`#presion` … `#arterial`, `#pared`, `#flujo` or `#poiseuille`.
 
 To package the player as a single shareable page (fonts embedded):
 `node scripts/build-artifact.mjs dist/artifact`.
@@ -99,7 +100,9 @@ src/lesson/
   s2/statics.js    Statics S.2–S.3, including the generated practice set
   bio/kit.js       biophysics kit: Spanish UI and number format, tanks, gauges,
                    human figure, vessels with moving cells, plots, practice sets
-  bio/b1-presion.js … b4-poiseuille.js   the four Spanish biophysics lessons
+  bio/hydro.js     tanks, columns, vessels of different shapes, the diver
+  bio/p1-presion.js … p5-arterial.js   the «Presión» block (lessons 1.1–1.5)
+  bio/b2-pared.js … b4-poiseuille.js   wall, flow and resistance (short versions)
 src/physics/       XPBD engine used by the sandbox prototype (and later lessons)
 docs/              lesson scripts
 assets/fonts/      Computer Modern (CMU Serif) and Inter, both SIL OFL

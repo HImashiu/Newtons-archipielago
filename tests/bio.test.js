@@ -1,7 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { n, close } from '../src/lesson/bio/kit.js';
-import { b1, arterial } from '../src/lesson/bio/b1-presion.js';
+import { p1 } from '../src/lesson/bio/p1-presion.js';
+import { p2 } from '../src/lesson/bio/p2-profundidad.js';
+import { p3 } from '../src/lesson/bio/p3-medir.js';
+import { p4 } from '../src/lesson/bio/p4-gravedad.js';
+import { p5, arterial, meanPressure } from '../src/lesson/bio/p5-arterial.js';
 import { b2, windkessel } from '../src/lesson/bio/b2-pared.js';
 import { b3, etaBlood } from '../src/lesson/bio/b3-flujo.js';
 import { b4, circulation } from '../src/lesson/bio/b4-poiseuille.js';
@@ -23,6 +27,18 @@ test('arterial waveform spans diastolic to systolic pressure', () => {
   }
   assert.ok(Math.abs(max - 120) < 1.5, `max ${max}`);
   assert.ok(Math.abs(min - 80) < 2.5, `min ${min}`);
+});
+
+test('mean arterial pressure: the waveform mean sits below the simple average, near the ⅓ rule', () => {
+  const m = meanPressure();
+  assert.ok(m < 100 && Math.abs(m - (80 + 40 / 3)) < 4, `mean ${m}`);
+});
+
+test('learner-paced lessons: every watch beat of the presión block waits for the learner', () => {
+  for (const lesson of [p1, p2, p3, p4, p5]) {
+    assert.equal(lesson.pauseAll, true);
+    for (const ch of lesson.chapters) for (const b of ch.beats) if (b.kind === 'watch') assert.notEqual(b.pause, false);
+  }
 });
 
 test('Windkessel: stiffer aorta raises systolic, lowers diastolic, widens pulse pressure', () => {
@@ -51,7 +67,7 @@ test('blood viscosity rises with hematocrit (≈ 3.7 mPa·s at 45 %)', () => {
   assert.ok(etaBlood(0.65) > etaBlood(0.45) && etaBlood(0.45) > etaBlood(0.25));
 });
 
-for (const lesson of [b1, b2, b3, b4]) {
+for (const lesson of [p1, p2, p3, p4, p5, b2, b3, b4]) {
   test(`${lesson.code}: generated practice problems are well-formed and reach mastery`, () => {
     const beat = lesson.chapters.find((c) => c.id === 'practice').beats[0];
     const S = lesson.state();

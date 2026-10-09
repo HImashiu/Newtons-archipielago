@@ -7,6 +7,7 @@
 import * as V from '../../core/vec.js';
 import { clamp } from '../core/anim.js';
 import { createWorkPanel } from '../core/workpanel.js';
+import { estimateWidth } from '../../render/mathtext.js';
 
 export const UI_ES = {
   chapter: 'Capítulo', yourTurn: 'Tu turno', nextStep: 'Siguiente paso', cont: 'Continuar', check: 'Comprobar',
@@ -469,6 +470,84 @@ export function askChoice({ key, choices }) {
     done: (S) => !!choices.find((c) => c.id === S.g[key])?.correct,
     skip(S) { S.g[key] = choices.find((c) => c.correct).id; },
     feedback: (S) => choices.find((c) => c.id === S.g[key] && !c.correct)?.why ?? null,
+  };
+}
+
+// ---------------------------------------------------------- data table
+
+/**
+ * A lab-notebook table in screen space. (x, y) is the top-right corner when
+ * o.right (default), else top-left. cols: [{ h, w }]; rows: arrays of strings.
+ * The row index in o.hi is highlighted.
+ */
+export function table(ink, key, cols, rows, o = {}) {
+  const W = cols.reduce((a, c) => a + c.w, 0);
+  const x0 = o.right === false ? (o.x ?? 28) : ink.W - (o.x ?? 28) - W;
+  const y0 = o.y ?? 30;
+  const rh = o.rh ?? 26;
+  let cx = x0;
+  cols.forEach((c, i) => {
+    ink.textS(`${key}-h${i}`, cx + c.w / 2, y0 + 16, c.h, { size: 13, cls: 'mid', layer: 'screen' });
+    cx += c.w;
+  });
+  ink.path(`${key}-hl`, `M${x0},${y0 + 24}H${x0 + W}`, 'ink', { layer: 'screen' });
+  rows.forEach((r, j) => {
+    let x = x0;
+    const y = y0 + 24 + (j + 1) * rh - 8;
+    r.forEach((v, i) => {
+      ink.textS(`${key}-c${j}-${i}`, x + cols[i].w / 2, y, v, { size: 15, layer: 'screen', cls: o.hi === j ? 'accent-tx' : '' });
+      x += cols[i].w;
+    });
+    ink.path(`${key}-rl${j}`, `M${x0},${y + 9}H${x0 + W}`, 'grid', { layer: 'screen' });
+  });
+  if (!rows.length && o.empty) ink.textS(`${key}-empty`, x0 + W / 2, y0 + 24 + rh - 8, o.empty, { size: 13, cls: 'mid', layer: 'screen' });
+}
+
+// ------------------------------------------------------ causal chains
+
+/**
+ * Ordering activity: build a cause → effect chain one link at a time.
+ * steps: the links in their correct order (the first one is given).
+ * Returns beat fields (controls/act/done/skip) plus draw(ink, S).
+ */
+export function orderChain({ key, steps }) {
+  const perm = (k) => steps.map((_, i) => i).filter((i) => i > k).sort((a, b) => ((a * 7 + 3) % 11) - ((b * 7 + 3) % 11));
+  const st = (S) => (S.g[key] ??= { k: 0, wrong: null });
+  return {
+    controls(S) {
+      const s = st(S);
+      if (s.k >= steps.length - 1) return [];
+      return perm(s.k).map((i) => ({ type: 'choice', id: String(i), label: steps[i], state: s.wrong === String(i) ? 'wrong' : null }));
+    },
+    act(S, id) {
+      const s = st(S);
+      if (Number(id) === s.k + 1) { s.k++; s.wrong = null; } else s.wrong = id;
+    },
+    done: (S) => st(S).k >= steps.length - 1,
+    skip(S) { st(S).k = steps.length - 1; },
+    wrongId: (S) => st(S).wrong,
+    draw(ink, S) {
+      const s = st(S);
+      const n = steps.length;
+      const gap = Math.min(54, (ink.H - 40) / n);
+      const bh = Math.min(36, gap - 14);
+      const w = Math.min(620, ink.W - 60);
+      const x = ink.W / 2 - w / 2;
+      const y0 = Math.max(16, ink.H / 2 - (n * gap) / 2);
+      for (let i = 0; i < n; i++) {
+        const y = y0 + i * gap;
+        const shown = i <= s.k;
+        const cls = shown ? (i === 0 ? 'chain-box first' : 'chain-box') : 'chain-slot';
+        ink.path(`${key}-b${i}`, `M${x + 8},${y}H${x + w - 8}Q${x + w},${y} ${x + w},${y + 8}V${y + bh - 8}Q${x + w},${y + bh} ${x + w - 8},${y + bh}H${x + 8}Q${x},${y + bh} ${x},${y + bh - 8}V${y + 8}Q${x},${y} ${x + 8},${y}Z`, cls, { layer: 'screen' });
+        if (shown) ink.textS(`${key}-t${i}`, ink.W / 2, y + bh / 2 + 6, steps[i], { size: estimateWidth(steps[i], 16) > w - 20 ? 14 : 16, layer: 'screen' });
+        else if (i === s.k + 1) ink.textS(`${key}-q${i}`, ink.W / 2, y + bh / 2 + 6, '¿qué pasa después?', { size: 14, cls: 'mid', layer: 'screen' });
+        if (i < n - 1) {
+          const ay = y + bh + 2, by = y + gap - 2;
+          ink.path(`${key}-a${i}`, `M${ink.W / 2},${ay}V${by - 6}`, i < s.k ? 'ink' : 'grid', { layer: 'screen' });
+          ink.path(`${key}-ah${i}`, `M${ink.W / 2},${by}l-4,-7h8z`, i < s.k ? 'head' : 'grid', { layer: 'screen' });
+        }
+      }
+    },
   };
 }
 

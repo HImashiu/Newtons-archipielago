@@ -63,6 +63,8 @@ export class Player {
     lesson.chapters.forEach((ch, ci) => ch.beats.forEach((b, bi) => {
       const seg = { ...b, ch, ci, bi, index: this.segs.length };
       paceBeat(seg);
+      // Learner-paced lessons: every watch beat waits for "Continue".
+      if (lesson.pauseAll && seg.kind === 'watch' && seg.pause === undefined) { seg.pause = true; seg.autoPause = true; }
       this.segs.push(seg);
     }));
     this.i = 0;
@@ -290,7 +292,7 @@ export class Player {
     const paused = seg.kind === 'watch' && seg.pause && this.t >= seg.dur;
     const showContinue = ((seg.kind === 'do' && this.successShown) || paused) && this.i < this.segs.length - 1;
     this.continueBtn.hidden = !showContinue;
-    this.continueBtn.querySelector('.label').textContent = seg.continueLabel ?? (paused ? this.ui.nextStep : this.ui.cont);
+    this.continueBtn.querySelector('.label').textContent = seg.continueLabel ?? (paused && !seg.autoPause ? this.ui.nextStep : this.ui.cont);
     this.renderControls(force);
     this.skipBtn.hidden = !(seg.kind === 'do' && !this.successShown && seg.skippable !== false);
     this.root.classList.toggle('is-success', seg.kind === 'do' && this.successShown);
@@ -317,6 +319,8 @@ export class Player {
     if (!force && key === this.lastControls) return;
     this.lastControls = key;
     this.choicesEl.hidden = !ctrls || ctrls.length === 0;
+    // Long answer options read better as a list than as pills.
+    this.choicesEl.classList.toggle('is-list', !!ctrls?.some((c) => c.type === 'choice' && String(c.label).replace(/<[^>]*>|\$/g, '').length > 34));
     if (!ctrls) { this.choicesEl.replaceChildren(); return; }
     const focused = document.activeElement?.closest?.('.num-entry')?.dataset.id;
     this.numValues = this.numValues ?? {};

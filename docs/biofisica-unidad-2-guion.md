@@ -1,5 +1,10 @@
 # Biofísica · Unidad 2 — Biofísica cardiovascular y respiratoria
 
+> **Nota:** la lección B.1 fue reemplazada por el bloque «Presión» de cinco
+> lecciones (1.1–1.5), que enseña en lugar de repasar. Ver
+> [`biofisica-presion-guion.md`](biofisica-presion-guion.md). Las secciones B.2–B.4
+> de este documento describen la versión breve, que se rehará con el mismo método.
+
 *Guion de las lecciones interactivas B.1–B.4 de Scratch Physics, en español.*
 Fuente: presentaciones *Biofísica 6, 7 y 8* (Universidad del Norte, Medicina,
 segundo semestre; semanas 7–11). Implementación: `src/lesson/bio/`.
@@ -10,7 +15,7 @@ clase magistral y horas complementarias.
 
 | Lección | Tema | Semanas | Enlace |
 | --- | --- | --- | --- |
-| B.1 | Presión en los fluidos y presión arterial | 7 (1.ª parte) | `#presion` |
+| 1.1–1.5 | Presión (reemplaza a B.1; ver el otro guion) | 7 (1.ª parte) | `#presion` … `#arterial` |
 | B.2 | La pared del vaso: rigidez vascular | 7 (2.ª parte) | `#pared` |
 | B.3 | Flujo: caudal, continuidad, Bernoulli, Reynolds y viscosidad | 8–9 | `#flujo` |
 | B.4 | Resistencia hidráulica y ley de Poiseuille (y Boyle) | 10–11 | `#poiseuille` |

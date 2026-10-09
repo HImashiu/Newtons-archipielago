@@ -3,7 +3,11 @@
 import { Player } from './core/player.js';
 import { lesson1 } from './l1/lesson1.js';
 import { statics } from './s2/statics.js';
-import { b1 } from './bio/b1-presion.js';
+import { p1 } from './bio/p1-presion.js';
+import { p2 } from './bio/p2-profundidad.js';
+import { p3 } from './bio/p3-medir.js';
+import { p4 } from './bio/p4-gravedad.js';
+import { p5 } from './bio/p5-arterial.js';
 import { b2 } from './bio/b2-pared.js';
 import { b3 } from './bio/b3-flujo.js';
 import { b4 } from './bio/b4-poiseuille.js';
@@ -12,9 +16,18 @@ export const COURSE = [
   { unit: 'Unit 1 · Kinematics', lessons: [{ id: 'motion', code: 'Lesson 1', title: 'Describing Motion', lesson: lesson1 }] },
   { unit: 'Statics · Beams', lessons: [{ id: 'beam', code: 'S.2–S.3', title: 'Inside a Beam', lesson: statics }] },
   {
-    unit: 'Biofísica · Unidad 2 (español)',
+    unit: 'Biofísica · Presión (Semana 7)',
     lessons: [
-      { id: 'presion', code: 'B.1', title: 'Presión en los fluidos', lesson: b1 },
+      { id: 'presion', code: '1.1', title: '¿Qué es la presión?', lesson: p1 },
+      { id: 'profundidad', code: '1.2', title: 'Presión y profundidad', lesson: p2 },
+      { id: 'manometros', code: '1.3', title: 'Medir la presión', lesson: p3 },
+      { id: 'gravedad', code: '1.4', title: 'La sangre y la gravedad', lesson: p4 },
+      { id: 'arterial', code: '1.5', title: 'Presión arterial', lesson: p5 },
+    ],
+  },
+  {
+    unit: 'Biofísica · Pared, flujo y resistencia (versión breve, por rehacer)',
+    lessons: [
       { id: 'pared', code: 'B.2', title: 'La pared del vaso', lesson: b2 },
       { id: 'flujo', code: 'B.3', title: 'Flujo, continuidad y Bernoulli', lesson: b3 },
       { id: 'poiseuille', code: 'B.4', title: 'Resistencia y ley de Poiseuille', lesson: b4 },
