@@ -159,8 +159,14 @@ export class Player {
     if (seg.kind === 'watch') {
       if (this.playing && !this.scrubbing) this.t += dt * this.speed;
       if (this.t >= seg.dur && !this.scrubbing) {
-        if (this.playing && this.i < this.segs.length - 1) this.enter(this.i + 1);
+        // Worked-example steps wait for the learner before moving on.
+        if (this.playing && !seg.pause && this.i < this.segs.length - 1) this.enter(this.i + 1);
         else this.t = seg.dur;
+      }
+      const atPause = !!seg.pause && this.t >= seg.dur;
+      if (atPause !== this.atPause) {
+        this.atPause = atPause;
+        this.renderCaption(true);
       }
     } else {
       this.t += dt;
@@ -271,28 +277,74 @@ export class Player {
       this.promptEl.innerHTML = promptHtml;
       this.promptEl.hidden = !prompt;
     }
-    const showContinue = seg.kind === 'do' && this.successShown && this.i < this.segs.length - 1;
+    const paused = seg.kind === 'watch' && seg.pause && this.t >= seg.dur;
+    const showContinue = ((seg.kind === 'do' && this.successShown) || paused) && this.i < this.segs.length - 1;
     this.continueBtn.hidden = !showContinue;
-    this.continueBtn.querySelector('.label').textContent = seg.continueLabel ?? 'Continue';
-    this.renderChoices(force);
+    this.continueBtn.querySelector('.label').textContent = seg.continueLabel ?? (paused ? 'Next step' : 'Continue');
+    this.renderControls(force);
     this.skipBtn.hidden = !(seg.kind === 'do' && !this.successShown && seg.skippable !== false);
     this.root.classList.toggle('is-success', seg.kind === 'do' && this.successShown);
   }
 
-  renderChoices(force) {
+  /**
+   * Answer controls under the prompt. A do-beat may declare
+   *   controls(S) → [{ type: 'choice' | 'number' | 'button', id, label, unit, state, disabled, primary }]
+   *   act(S, id, value)
+   * or the shorthand choices / answered / choose for a single multiple choice.
+   */
+  renderControls(force) {
     const seg = this.seg;
-    const choices = seg.kind === 'do' && seg.choices ? seg.choices : null;
-    const key = choices ? `${seg.index}:${seg.answered?.(this.S) ?? ''}:${this.successShown}` : '';
-    if (!force && key === this.lastChoices) return;
-    this.lastChoices = key;
-    this.choicesEl.hidden = !choices;
-    if (!choices) { this.choicesEl.replaceChildren(); return; }
-    const picked = seg.answered?.(this.S);
-    this.choicesEl.innerHTML = choices.map((c) => `<button type="button" class="choice${picked === c.id ? (c.correct ? ' is-right' : ' is-wrong') : ''}" data-id="${c.id}"${this.successShown ? ' disabled' : ''}>${mathify(c.label)}</button>`).join('');
-    this.choicesEl.querySelectorAll('.choice').forEach((b) => b.addEventListener('click', () => {
-      seg.choose(this.S, b.dataset.id);
+    const S = this.S;
+    let ctrls = null;
+    if (seg.kind === 'do') {
+      if (seg.controls) ctrls = seg.controls(S) ?? null;
+      else if (seg.choices) {
+        const picked = seg.answered?.(S);
+        ctrls = seg.choices.map((c) => ({ type: 'choice', id: c.id, label: c.label, state: picked === c.id ? (c.correct ? 'right' : 'wrong') : null, disabled: this.successShown }));
+      }
+    }
+    const key = ctrls ? `${seg.index}:${JSON.stringify(ctrls)}` : '';
+    if (!force && key === this.lastControls) return;
+    this.lastControls = key;
+    this.choicesEl.hidden = !ctrls || ctrls.length === 0;
+    if (!ctrls) { this.choicesEl.replaceChildren(); return; }
+    const focused = document.activeElement?.closest?.('.num-entry')?.dataset.id;
+    this.numValues = this.numValues ?? {};
+    this.choicesEl.innerHTML = ctrls.map((c) => {
+      if (c.type === 'number') {
+        const v = this.numValues[`${seg.index}:${c.id}`] ?? '';
+        return `<span class="num-entry${c.state ? ` is-${c.state}` : ''}" data-id="${c.id}">${c.label ? `<span class="ne-label">${mathify(c.label)}</span>` : ''}<input inputmode="decimal" autocomplete="off" spellcheck="false" value="${v}" aria-label="${(c.aria ?? c.label ?? 'answer').replace(/[$"<>]/g, '')}"${c.disabled ? ' disabled' : ''}><span class="ne-unit">${c.unit ?? ''}</span><button type="button" class="ne-check"${c.disabled ? ' disabled' : ''}>Check</button></span>`;
+      }
+      if (c.type === 'button') return `<button type="button" class="ctrl-btn${c.primary ? ' primary' : ''}" data-id="${c.id}"${c.disabled ? ' disabled' : ''}>${mathify(c.label)}</button>`;
+      return `<button type="button" class="choice${c.state ? ` is-${c.state}` : ''}" data-id="${c.id}"${c.disabled ? ' disabled' : ''}>${mathify(c.label)}</button>`;
+    }).join('');
+    const act = (id, value) => {
+      if (seg.act) seg.act(S, id, value, this.api);
+      else seg.choose?.(S, id);
       this.renderCaption(true);
-    }));
+    };
+    this.choicesEl.querySelectorAll('.choice, .ctrl-btn').forEach((b) => b.addEventListener('click', () => act(b.dataset.id)));
+    this.choicesEl.querySelectorAll('.num-entry').forEach((box) => {
+      const input = box.querySelector('input');
+      const id = box.dataset.id;
+      const submit = () => {
+        const raw = input.value.trim().replace('−', '-').replace(',', '.');
+        const v = parseFloat(raw);
+        if (!Number.isFinite(v)) { input.focus(); return; }
+        act(id, v);
+      };
+      input.addEventListener('input', () => { this.numValues[`${seg.index}:${id}`] = input.value; });
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
+      box.querySelector('.ne-check').addEventListener('click', submit);
+      if (focused === id) input.focus();
+    });
+  }
+
+  /** Clear typed answers for this beat (e.g. when a new problem is generated). */
+  clearAnswers() {
+    if (!this.numValues) return;
+    for (const k of Object.keys(this.numValues)) if (k.startsWith(`${this.seg.index}:`)) delete this.numValues[k];
+    this.lastControls = null;
   }
 
   // --------------------------------------------------------------- panels
@@ -451,6 +503,7 @@ export class Player {
       } else if (e.key === 'ArrowLeft') {
         this.prev();
       } else if (e.key === 'Enter' && !this.continueBtn.hidden) {
+        e.preventDefault();
         this.next();
       }
     });

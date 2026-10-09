@@ -6,10 +6,16 @@ ink, Computer Modern), plays as a sequence of short narrated beats, and stops
 whenever it is the learner's turn to predict, drag, build or run something.
 Every drawing is a live, manipulable model, not an illustration.
 
-**Lesson 1 — Describing Motion** (position, motion diagrams, position–time
-graphs, velocity as slope, and the update rule `x ← x + v·Δt`) is the first
-complete lesson. Its design script is in
-[`docs/lesson-01-script.md`](docs/lesson-01-script.md).
+Two lessons so far (pick one from the header menu, or with `?lesson=`):
+
+- **Lesson 1 — Describing Motion** (`?lesson=motion`): position, motion
+  diagrams, position–time graphs, velocity as slope, and the update rule
+  `x ← x + v·Δt`. Script: [`docs/lesson-01-script.md`](docs/lesson-01-script.md).
+  To be split into a six-lesson unit with practice sets.
+- **Statics S.2–S.3 — Inside a Beam** (`?lesson=beam`): method of sections,
+  shear and moment diagrams, with worked examples, guided steps and a
+  generated problem set that ends at four correct in a row. Script:
+  [`docs/lesson-statics-s2-s3-script.md`](docs/lesson-statics-s2-s3-script.md).
 
 ## Run it
 
@@ -61,6 +67,10 @@ src/lesson/
   rule.js          rule tiles: units, analysis, evaluation, consequence-aware judging
   l1/lesson1.js    Lesson 1, beat by beat
   l1/panel.js      object card, clock and rule editor
+  core/tiles.js    shared tile editor (build / fill-in-the-blank / locked)
+  core/workpanel.js  step-by-step working beside the drawing
+  s2/beam.js       beam solver: reactions, V(x), M(x), diagram samples
+  s2/statics.js    Statics S.2–S.3, including the generated practice set
 src/physics/       XPBD engine used by the sandbox prototype (and later lessons)
 docs/              lesson scripts
 assets/fonts/      Computer Modern (CMU Serif) and Inter, both SIL OFL
