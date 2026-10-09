@@ -32,9 +32,18 @@ Lessons so far (pick one from the header menu, or with `?lesson=`):
     measurement error, the causal chain of orthostatic hypotension, veins.
   - **1.5 Presión arterial** (`#arterial`): read the waveform, find the mean
     by balancing areas, take a reading with a deflating-cuff simulator.
-- **Biofísica · pared, flujo y resistencia** (`#pared`, `#flujo`,
-  `#poiseuille`): shorter first versions of weeks 7–11, still to be rebuilt
-  in the same way. Script: [`docs/biofisica-unidad-2-guion.md`](docs/biofisica-unidad-2-guion.md).
+- **Biofísica · La pared del vaso** (week 8): 2.1 elasticity and compliance
+  (`#elasticidad`), 2.2 the aorta as a damper / Windkessel (`#amortiguador`),
+  2.3 Laplace and pulse-wave velocity (`#laplace`).
+- **Biofísica · Flujo** (week 9): 3.1 flow rate and continuity (`#caudal`),
+  3.2 Bernoulli (`#bernoulli`), 3.3 laminar vs turbulent (`#regimen`).
+- **Biofísica · Resistencia** (weeks 10–11): 4.1 Poiseuille (`#poiseuille`),
+  4.2 series/parallel networks and hemorrhagic shock (`#redes`),
+  4.3 breathing mechanics and Boyle (`#respiracion`).
+  Every lesson follows the same teaching pattern: prediction → the learner's
+  own measurements → derive the law from them → worked, semi-worked and
+  independent clinical cases → practice to mastery. Script:
+  [`docs/biofisica-pared-flujo-resistencia-guion.md`](docs/biofisica-pared-flujo-resistencia-guion.md).
 
 ## Run it
 
@@ -49,7 +58,7 @@ Then open http://localhost:8080. Jump to a chapter with `?chapter=<id>`
 (`where`, `when`, `graphs`, `velocity`, `rule`, `challenge`, `summary`).
 
 A lesson can also be chosen with a bare anchor, e.g. `#motion`, `#beam`,
-`#presion` … `#arterial`, `#pared`, `#flujo` or `#poiseuille`.
+`#presion` … `#arterial`, `#elasticidad` … `#respiracion`.
 
 To package the player as a single shareable page (fonts embedded):
 `node scripts/build-artifact.mjs dist/artifact`.
@@ -102,7 +111,8 @@ src/lesson/
                    human figure, vessels with moving cells, plots, practice sets
   bio/hydro.js     tanks, columns, vessels of different shapes, the diver
   bio/p1-presion.js … p5-arterial.js   the «Presión» block (lessons 1.1–1.5)
-  bio/b2-pared.js … b4-poiseuille.js   wall, flow and resistance (short versions)
+  bio/scenes-*.js  drawings shared by the wall, flow and resistance blocks
+  bio/q1…q3, r1…r3, s1…s3   lessons 2.1–4.3
 src/physics/       XPBD engine used by the sandbox prototype (and later lessons)
 docs/              lesson scripts
 assets/fonts/      Computer Modern (CMU Serif) and Inter, both SIL OFL

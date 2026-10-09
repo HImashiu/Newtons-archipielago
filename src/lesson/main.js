@@ -8,9 +8,15 @@ import { p2 } from './bio/p2-profundidad.js';
 import { p3 } from './bio/p3-medir.js';
 import { p4 } from './bio/p4-gravedad.js';
 import { p5 } from './bio/p5-arterial.js';
-import { b2 } from './bio/b2-pared.js';
-import { b3 } from './bio/b3-flujo.js';
-import { b4 } from './bio/b4-poiseuille.js';
+import { q1 } from './bio/q1-elasticidad.js';
+import { q2 } from './bio/q2-amortiguador.js';
+import { q3 } from './bio/q3-laplace.js';
+import { r1 } from './bio/r1-caudal.js';
+import { r2 } from './bio/r2-bernoulli.js';
+import { r3 } from './bio/r3-regimen.js';
+import { s1 } from './bio/s1-poiseuille.js';
+import { s2 as s2r } from './bio/s2-redes.js';
+import { s3 } from './bio/s3-respiracion.js';
 
 export const COURSE = [
   { unit: 'Unit 1 · Kinematics', lessons: [{ id: 'motion', code: 'Lesson 1', title: 'Describing Motion', lesson: lesson1 }] },
@@ -26,11 +32,27 @@ export const COURSE = [
     ],
   },
   {
-    unit: 'Biofísica · Pared, flujo y resistencia (versión breve, por rehacer)',
+    unit: 'Biofísica · La pared del vaso (Semana 8)',
     lessons: [
-      { id: 'pared', code: 'B.2', title: 'La pared del vaso', lesson: b2 },
-      { id: 'flujo', code: 'B.3', title: 'Flujo, continuidad y Bernoulli', lesson: b3 },
-      { id: 'poiseuille', code: 'B.4', title: 'Resistencia y ley de Poiseuille', lesson: b4 },
+      { id: 'elasticidad', code: '2.1', title: q1.title, lesson: q1 },
+      { id: 'amortiguador', code: '2.2', title: q2.title, lesson: q2 },
+      { id: 'laplace', code: '2.3', title: q3.title, lesson: q3 },
+    ],
+  },
+  {
+    unit: 'Biofísica · Flujo (Semana 9)',
+    lessons: [
+      { id: 'caudal', code: '3.1', title: r1.title, lesson: r1 },
+      { id: 'bernoulli', code: '3.2', title: r2.title, lesson: r2 },
+      { id: 'regimen', code: '3.3', title: r3.title, lesson: r3 },
+    ],
+  },
+  {
+    unit: 'Biofísica · Resistencia (Semanas 10–11)',
+    lessons: [
+      { id: 'poiseuille', code: '4.1', title: s1.title, lesson: s1 },
+      { id: 'redes', code: '4.2', title: s2r.title, lesson: s2r },
+      { id: 'respiracion', code: '4.3', title: s3.title, lesson: s3 },
     ],
   },
 ];
@@ -38,7 +60,9 @@ export const COURSE = [
 // A lesson is chosen with a bare #anchor (works in shared links) or ?lesson=.
 const params = new URLSearchParams(location.search);
 const all = COURSE.flatMap((u) => u.lessons);
-const wanted = location.hash.replace('#', '') || params.get('lesson');
+const ALIAS = { pared: 'elasticidad', flujo: 'caudal' };
+const raw = location.hash.replace('#', '') || params.get('lesson');
+const wanted = ALIAS[raw] ?? raw;
 const entry = all.find((l) => l.id === wanted) ?? all[0];
 window.addEventListener('hashchange', () => location.reload());
 

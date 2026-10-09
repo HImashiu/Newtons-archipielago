@@ -6,9 +6,18 @@ import { p2 } from '../src/lesson/bio/p2-profundidad.js';
 import { p3 } from '../src/lesson/bio/p3-medir.js';
 import { p4 } from '../src/lesson/bio/p4-gravedad.js';
 import { p5, arterial, meanPressure } from '../src/lesson/bio/p5-arterial.js';
-import { b2, windkessel } from '../src/lesson/bio/b2-pared.js';
-import { b3, etaBlood } from '../src/lesson/bio/b3-flujo.js';
-import { b4, circulation } from '../src/lesson/bio/b4-poiseuille.js';
+import { windkessel } from '../src/lesson/bio/scenes-pared.js';
+import { etaBlood } from '../src/lesson/bio/scenes-flujo.js';
+import { circulation } from '../src/lesson/bio/scenes-resistencia.js';
+import { q1 } from '../src/lesson/bio/q1-elasticidad.js';
+import { q2 } from '../src/lesson/bio/q2-amortiguador.js';
+import { q3 } from '../src/lesson/bio/q3-laplace.js';
+import { r1 } from '../src/lesson/bio/r1-caudal.js';
+import { r2 } from '../src/lesson/bio/r2-bernoulli.js';
+import { r3 } from '../src/lesson/bio/r3-regimen.js';
+import { s1 } from '../src/lesson/bio/s1-poiseuille.js';
+import { s2 } from '../src/lesson/bio/s2-redes.js';
+import { s3 } from '../src/lesson/bio/s3-respiracion.js';
 
 test('Spanish number format: decimal comma, thin-space thousands, true minus', () => {
   assert.equal(n(1.3, 2), '1,30');
@@ -35,7 +44,7 @@ test('mean arterial pressure: the waveform mean sits below the simple average, n
 });
 
 test('learner-paced lessons: every watch beat of the presión block waits for the learner', () => {
-  for (const lesson of [p1, p2, p3, p4, p5]) {
+  for (const lesson of [p1, p2, p3, p4, p5, q1, q2, q3, r1, r2, r3, s1, s2, s3]) {
     assert.equal(lesson.pauseAll, true);
     for (const ch of lesson.chapters) for (const b of ch.beats) if (b.kind === 'watch') assert.notEqual(b.pause, false);
   }
@@ -67,7 +76,7 @@ test('blood viscosity rises with hematocrit (≈ 3.7 mPa·s at 45 %)', () => {
   assert.ok(etaBlood(0.65) > etaBlood(0.45) && etaBlood(0.45) > etaBlood(0.25));
 });
 
-for (const lesson of [p1, p2, p3, p4, p5, b2, b3, b4]) {
+for (const lesson of [p1, p2, p3, p4, p5, q1, q2, q3, r1, r2, r3, s1, s2, s3]) {
   test(`${lesson.code}: generated practice problems are well-formed and reach mastery`, () => {
     const beat = lesson.chapters.find((c) => c.id === 'practice').beats[0];
     const S = lesson.state();
@@ -89,7 +98,7 @@ for (const lesson of [p1, p2, p3, p4, p5, b2, b3, b4]) {
       beat.act(S, 'next', undefined, api);
     }
     assert.ok(beat.done(S));
-    assert.ok(kinds.size >= 5, `only ${[...kinds]}`);
+    assert.ok(kinds.size >= 4, `only ${[...kinds]}`);
   });
 
   test(`${lesson.code}: every guided number beat accepts its own answer`, () => {

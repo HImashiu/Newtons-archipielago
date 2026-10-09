@@ -526,7 +526,7 @@ export const p5 = {
             'Korotkoff: primer ruido = PAS, silencio = PAD. Desinflar rápido, un manguito estrecho o el brazo fuera del nivel del corazón falsean la lectura.',
             'Casos: viscosidad (hematocrito) → más resistencia; hemorragia → menos volumen; ejercicio → más gasto cardíaco.',
           ],
-          next: '<span class="eyebrow">Siguiente bloque</span> <a class="cm-next" href="#pared">La pared del vaso ›</a>',
+          next: '<span class="eyebrow">Siguiente bloque</span> <a class="cm-next" href="#elasticidad">2.1 · Elasticidad de la pared ›</a>',
         }),
         draw() {},
       }],
