@@ -52,6 +52,8 @@ A lesson can also be chosen with a bare anchor: `#motion`, `#beam`, `#presion`,
 
 To package the player as a single shareable page (fonts embedded):
 `node scripts/build-artifact.mjs dist/artifact`.
+For one self-contained file that opens offline by double-click:
+`node scripts/build-single.mjs scratch-physics.html`.
 
 Controls: **Space** play/pause, **← / →** previous/next beat, **Enter**
 continue. Drag on the timeline to scrub; click the drawing to pause.
