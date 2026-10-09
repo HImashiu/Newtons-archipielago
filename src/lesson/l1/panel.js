@@ -2,13 +2,11 @@
 // clock, and the rule editor. Tiles are quantities with units; the editor
 // checks dimensions live and explains mismatches in words.
 
-import { QUANTITIES, OPERATORS, analyse, unitName, describeUnit, render } from '../rule.js';
+import { L1 } from '../rule.js';
+import { createTileEditor } from '../core/tiles.js';
 import { scrubber } from '../core/scrub.js';
 import { num } from '../core/anim.js';
 import { mathHtml } from '../../render/mathtext.js';
-
-const TILE_ORDER = ['x', 'v', 'dt', '+', '×'];
-const SYM = { x: '$x$', v: '$v$', dt: 'Δ$t$', '+': '+', '×': '×' };
 
 const h = (tag, cls, html) => {
   const el = document.createElement(tag);
@@ -17,18 +15,8 @@ const h = (tag, cls, html) => {
   return el;
 };
 
-function tileEl(tok, placed) {
-  const isOp = tok in OPERATORS;
-  const el = h('button', `tile${isOp ? ' tile-op' : ` tile-q tile-${tok}`}${placed ? ' is-placed' : ''}`);
-  el.type = 'button';
-  el.dataset.tok = tok;
-  el.innerHTML = `<span class="tile-sym">${mathHtml(SYM[tok])}</span>${isOp ? '' : `<span class="tile-unit">${unitName(QUANTITIES[tok].dims)}</span>`}`;
-  el.setAttribute('aria-label', isOp ? OPERATORS[tok].name : `${QUANTITIES[tok].name} (${unitName(QUANTITIES[tok].dims)})`);
-  return el;
-}
-
 export function createRulePanel(hooks) {
-  let root, els = {}, mode = null, listeners = null;
+  let root, els = {}, mode = null;
 
   function mount(el, S) {
     root = h('div', 'pn');
@@ -47,23 +35,16 @@ export function createRulePanel(hooks) {
     // Rule ---------------------------------------------------------------
     const rule = h('section', 'pn-card pn-rule');
     rule.append(h('div', 'pn-head', '<span>Rule</span><span class="pn-kind">runs every tick</span>'));
-    const line = h('div', 'rule-line');
-    line.append(h('span', 'rule-lhs', `${mathHtml('$x$')}<span class="rule-arrow">←</span>`));
-    els.slot = h('div', 'slot');
-    els.slot.setAttribute('aria-label', 'Rule: drop tiles here');
-    line.append(els.slot);
-    els.check = h('div', 'rule-check');
-    els.tray = h('div', 'tray');
-    for (const tok of TILE_ORDER) els.tray.append(tileEl(tok, false));
-    els.trayHint = h('div', 'tray-hint', 'Click or drag a tile into the rule; click a placed tile to remove it.');
+    els.editor = createTileEditor({
+      system: L1, target: 'x', tray: ['x', 'v', 'dt', '+', '×'],
+      onChange: (tokens) => { S.rule = tokens; hooks.ruleChanged(S); },
+    });
     els.subst = h('div', 'subst');
     els.actions = h('div', 'actions');
     els.result = h('div', 'result');
-    rule.append(line, els.check, els.tray, els.trayHint, els.subst, els.result, els.actions);
+    rule.append(els.editor.el, els.subst, els.result, els.actions);
     root.append(card, clock, rule);
     el.append(root);
-    bindTiles(S);
-    renderSlot(S);
   }
 
   function prop(sym, valueEl, unit, hint) {
@@ -81,107 +62,18 @@ export function createRulePanel(hooks) {
 
   function setMode(m, S) {
     mode = m;
-    const building = m === 'build';
     root.dataset.mode = m;
-    els.tray.hidden = !building;
-    els.trayHint.hidden = !building;
-    els.slot.classList.toggle('is-locked', !building);
+    els.editor.set(S.rule, m === 'build' || m === 'blank' ? m : 'locked');
     els.actions.replaceChildren();
     els.result.textContent = '';
     els.subst.textContent = '';
-    const editX = m === 'challenge2';
-    const editV = m === 'challenge1' || m === 'challenge2';
-    els.x.setEnabled(editX);
-    els.v.setEnabled(editV);
-    if (m === 'build') els.actions.append(button('Test the rule', 'primary', () => hooks.test(S)));
+    els.x.setEnabled(m === 'challenge2');
+    els.v.setEnabled(m === 'challenge1' || m === 'challenge2');
+    if (m === 'build' || m === 'blank') els.actions.append(button('Test the rule', 'primary', () => hooks.test(S)));
     if (m === 'step') els.actions.append(button('Step <span class="kbd">+Δt</span>', 'primary', () => hooks.step(S)), button('Reset', '', () => hooks.reset(S)));
     if (m === 'challenge1' || m === 'challenge2') {
       els.actions.append(button('Run ▸', 'primary', () => hooks.run(S)), button('Reset', '', () => hooks.reset(S)));
     }
-    renderSlot(S);
-  }
-
-  // --------------------------------------------------------------- tiles
-
-  function renderSlot(S) {
-    els.slot.replaceChildren(...S.rule.map((tok, i) => {
-      const t = tileEl(tok, true);
-      t.dataset.index = String(i);
-      return t;
-    }));
-    if (S.rule.length === 0) els.slot.append(h('span', 'slot-empty', 'drop tiles here'));
-    const a = analyse(S.rule);
-    let html;
-    if (S.rule.length === 0) html = '';
-    else if (a.ok) {
-      const isPos = a.dims.m === 1 && a.dims.s === 0;
-      html = `<span class="unit-eq">= ${unitName(a.dims)}</span> <span class="${isPos ? 'ok' : 'bad'}">${isPos ? '✓ a position — units agree with x' : `✗ ${describeUnit(a.dims)}, but x is in metres`}</span>`;
-    } else if (a.error) html = `<span class="bad">✗ ${a.error}</span>`;
-    else html = '<span class="muted">…keep going</span>';
-    els.check.innerHTML = html;
-  }
-
-  function bindTiles(S) {
-    let drag = null;
-    const insertIndex = (clientX) => {
-      const tiles = [...els.slot.querySelectorAll('.tile:not(.is-ghosted)')];
-      for (let i = 0; i < tiles.length; i++) {
-        const r = tiles[i].getBoundingClientRect();
-        if (clientX < r.left + r.width / 2) return Number(tiles[i].dataset.index);
-      }
-      return S.rule.length;
-    };
-    const onDown = (e) => {
-      const t = e.target.closest('.tile');
-      if (!t || mode !== 'build') return;
-      e.preventDefault();
-      drag = { tok: t.dataset.tok, from: t.dataset.index !== undefined ? Number(t.dataset.index) : null, x: e.clientX, y: e.clientY, moved: false, src: t };
-      t.setPointerCapture?.(e.pointerId);
-    };
-    const onMove = (e) => {
-      if (!drag) return;
-      if (!drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 4) return;
-      if (!drag.moved) {
-        drag.moved = true;
-        drag.ghost = tileEl(drag.tok, false);
-        drag.ghost.classList.add('tile-ghost');
-        document.body.append(drag.ghost);
-        if (drag.from !== null) drag.src.classList.add('is-ghosted');
-      }
-      drag.ghost.style.transform = `translate(${e.clientX - 18}px, ${e.clientY - 20}px)`;
-      const r = els.slot.getBoundingClientRect();
-      const over = e.clientX > r.left - 20 && e.clientX < r.right + 20 && e.clientY > r.top - 24 && e.clientY < r.bottom + 24;
-      els.slot.classList.toggle('is-target', over);
-    };
-    const onUp = (e) => {
-      if (!drag) return;
-      const d = drag;
-      drag = null;
-      els.slot.classList.remove('is-target');
-      if (d.ghost) d.ghost.remove();
-      if (!d.moved) {
-        // Click: tray → append, slot → remove.
-        if (d.from === null) S.rule.push(d.tok);
-        else S.rule.splice(d.from, 1);
-      } else {
-        const r = els.slot.getBoundingClientRect();
-        const over = e.clientX > r.left - 20 && e.clientX < r.right + 20 && e.clientY > r.top - 24 && e.clientY < r.bottom + 24;
-        if (d.from !== null) S.rule.splice(d.from, 1);
-        if (over) {
-          let idx = insertIndex(e.clientX);
-          if (d.from !== null && idx > d.from) idx -= 1;
-          S.rule.splice(Math.min(idx, S.rule.length), 0, d.tok);
-        }
-      }
-      hooks.ruleChanged(S);
-      renderSlot(S);
-    };
-    listeners?.abort();
-    listeners = new AbortController();
-    const opt = { signal: listeners.signal };
-    root.addEventListener('pointerdown', onDown, opt);
-    window.addEventListener('pointermove', onMove, opt);
-    window.addEventListener('pointerup', onUp, opt);
   }
 
   // -------------------------------------------------------------- update
@@ -203,7 +95,7 @@ export function createRulePanel(hooks) {
     for (const b of els.actions.querySelectorAll('.primary')) b.disabled = !!sim.running;
   }
 
-  return { mount, setMode, update, renderSlot: (S) => renderSlot(S) };
+  return { mount, setMode, update };
 }
 
 /** Substitution line, e.g.  x ← 1.00 + 1.0 × 0.50 = 1.50 m */
@@ -216,5 +108,5 @@ export function substitution(tokens, env, result) {
     first = false;
     return out;
   };
-  return `${mathHtml('$x$')} ← ${render(tokens, env, fmt)} = <b>${num(result, 2)} m</b>`;
+  return `${mathHtml('$x$')} ← ${L1.render(tokens, env, fmt)} = <b>${num(result, 2)} m</b>`;
 }

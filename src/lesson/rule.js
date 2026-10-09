@@ -1,97 +1,117 @@
-// Rule tiles: the redesigned "blocks". A rule says how a property changes in
-// one tick of the clock, e.g.   x ← x + v · Δt
-// Every tile is a physical quantity with a unit; the rule is checked with
-// dimensional analysis as it is built, and whatever valid rule the learner
+// Rule tiles: the redesigned "blocks". A rule says how one property changes
+// in one small step, e.g.   x ← x + v · Δt      or      M ← M + V · Δx
+// Every tile is a physical quantity with a unit; rules are checked with
+// dimensional analysis as they are built, and whatever valid rule the learner
 // builds is exactly what the simulation runs.
+//
+// makeSystem(quantities) builds the engine for one vocabulary of tiles.
+// Units are exponent maps over base units, e.g. { kN: 1, m: 1 } = kN·m.
 
-/** Quantities available in Lesson 1. dims = exponents of (m, s). */
-export const QUANTITIES = {
-  x: { sym: 'x', name: 'position', dims: { m: 1, s: 0 } },
-  v: { sym: 'v', name: 'velocity', dims: { m: 1, s: -1 } },
-  dt: { sym: 'Δt', name: 'time step', dims: { m: 0, s: 1 } },
-};
+export const BASE_UNITS = ['kN', 'm', 's'];
+export const HOLE = '?';
 
 export const OPERATORS = {
   '+': { sym: '+', name: 'plus' },
   '×': { sym: '×', name: 'times' },
 };
 
-export function unitName({ m, s }) {
-  if (m === 0 && s === 0) return '1';
-  const pow = (u, e) => (e === 1 ? u : `${u}${{ 2: '²', 3: '³', '-1': '⁻¹', '-2': '⁻²' }[e] ?? `^${e}`}`);
+const exp = (d, u) => d[u] ?? 0;
+export const sameDims = (a, b) => BASE_UNITS.every((u) => exp(a, u) === exp(b, u));
+
+export function unitName(d) {
+  const pow = (u, e) => (e === 1 ? u : `${u}${{ 2: '²', 3: '³' }[e] ?? `^${e}`}`);
   const num = [], den = [];
-  if (m > 0) num.push(pow('m', m));
-  if (s > 0) num.push(pow('s', s));
-  if (m < 0) den.push(pow('m', -m));
-  if (s < 0) den.push(pow('s', -s));
+  for (const u of BASE_UNITS) {
+    const e = exp(d, u);
+    if (e > 0) num.push(pow(u, e));
+    if (e < 0) den.push(pow(u, -e));
+  }
   const n = num.join('·') || '1';
   return den.length ? `${n}/${den.join('·')}` : n;
 }
 
-const KIND_OF = { 'm/1': 'a position', 'm/s': 'a velocity', 's/1': 'a time', '1/1': 'a plain number' };
-export function describeUnit(d) {
-  const name = unitName(d);
-  return KIND_OF[`${name}/1`] ?? KIND_OF[name] ?? `${name}`;
-}
+export function makeSystem(quantities, kinds = {}) {
+  const describe = (d) => kinds[unitName(d)] ?? unitName(d);
+  const isQ = (t) => t in quantities;
 
-const same = (a, b) => a.m === b.m && a.s === b.s;
-
-/**
- * Analyse a tile sequence (sum of products). Returns
- *   { ok, complete, dims, error, terms }
- * where error is a learner-facing explanation.
- */
-export function analyse(tokens) {
-  if (tokens.length === 0) return { ok: false, complete: false, error: null };
-  // Alternate operand / operator.
-  for (let i = 0; i < tokens.length; i++) {
-    const isOp = tokens[i] in OPERATORS;
-    if (i % 2 === 0 && isOp) return { ok: false, complete: false, error: 'Start with a quantity, then put an operation between quantities.' };
-    if (i % 2 === 1 && !isOp) return { ok: false, complete: false, error: `Put + or × between ${QUANTITIES[tokens[i - 1]]?.sym ?? 'quantities'} and ${QUANTITIES[tokens[i]]?.sym}.` };
-  }
-  if (tokens[tokens.length - 1] in OPERATORS) return { ok: false, complete: false, error: null };
-  // Split into product terms.
-  const terms = [[]];
-  tokens.forEach((t, i) => {
-    if (t === '+') terms.push([]);
-    else if (i % 2 === 0) terms[terms.length - 1].push(t);
-  });
-  const termDims = terms.map((term) => term.reduce((d, q) => ({ m: d.m + QUANTITIES[q].dims.m, s: d.s + QUANTITIES[q].dims.s }), { m: 0, s: 0 }));
-  for (let i = 1; i < termDims.length; i++) {
-    if (!same(termDims[i], termDims[0])) {
-      const a = unitName(termDims[0]), b = unitName(termDims[i]);
-      return {
-        ok: false, complete: true, terms, termDims,
-        error: `${a} + ${b}: you can't add ${describeUnit(termDims[0])} and ${describeUnit(termDims[i])}.`,
-      };
+  /**
+   * Analyse a tile sequence (sum of products). Returns
+   *   { ok, complete, dims, error, terms }
+   * where error is a learner-facing explanation.
+   */
+  function analyse(tokens) {
+    if (tokens.length === 0) return { ok: false, complete: false, error: null };
+    for (let i = 0; i < tokens.length; i++) {
+      const t = tokens[i];
+      const isOp = t in OPERATORS;
+      if (i % 2 === 0 && isOp) return { ok: false, complete: false, error: 'Start with a quantity, then put an operation between quantities.' };
+      if (i % 2 === 1 && !isOp) {
+        const a = quantities[tokens[i - 1]]?.sym ?? 'quantities';
+        return { ok: false, complete: false, error: `Put + or × between ${a} and ${quantities[t]?.sym ?? 'the next tile'}.` };
+      }
     }
+    if (tokens[tokens.length - 1] in OPERATORS) return { ok: false, complete: false, error: null };
+    if (tokens.includes(HOLE)) return { ok: false, complete: false, hole: true, error: null };
+    const terms = [[]];
+    tokens.forEach((t, i) => {
+      if (t === '+') terms.push([]);
+      else if (i % 2 === 0) terms[terms.length - 1].push(t);
+    });
+    const termDims = terms.map((term) => term.reduce((d, q) => {
+      const out = { ...d };
+      for (const u of BASE_UNITS) out[u] = exp(d, u) + exp(quantities[q].dims, u);
+      return out;
+    }, {}));
+    for (let i = 1; i < termDims.length; i++) {
+      if (!sameDims(termDims[i], termDims[0])) {
+        const a = unitName(termDims[0]), b = unitName(termDims[i]);
+        return {
+          ok: false, complete: true, terms, termDims,
+          error: `${a} + ${b}: you can't add ${describe(termDims[0])} and ${describe(termDims[i])}.`,
+        };
+      }
+    }
+    return { ok: true, complete: true, dims: termDims[0], terms, termDims };
   }
-  return { ok: true, complete: true, dims: termDims[0], terms, termDims };
+
+  function evaluate(tokens, env) {
+    const a = analyse(tokens);
+    if (!a.ok) return NaN;
+    return a.terms.reduce((sum, term) => sum + term.reduce((p, q) => p * env[q], 1), 0);
+  }
+
+  /** The rule written with symbols, or with numbers substituted. */
+  function render(tokens, env = null, fmt = (v) => v.toFixed(2)) {
+    return tokens.map((t) => {
+      if (t in OPERATORS) return ` ${OPERATORS[t].sym} `;
+      if (t === HOLE) return ' ▢ ';
+      return env ? fmt(env[t], t) : quantities[t].sym;
+    }).join('');
+  }
+
+  return { quantities, kinds, describe, analyse, evaluate, render, isQ };
 }
 
-/** Evaluate a valid rule with values { x, v, dt }. */
-export function evaluate(tokens, env) {
-  const a = analyse(tokens);
-  if (!a.ok) return NaN;
-  return a.terms.reduce((sum, term) => sum + term.reduce((p, q) => p * env[q], 1), 0);
-}
+// ------------------------------------------------------------- Lesson 1
 
-/** The rule written with symbols and, optionally, numbers substituted. */
-export function render(tokens, env = null, fmt = (v) => v.toFixed(2)) {
-  return tokens.map((t) => {
-    if (t in OPERATORS) return ` ${OPERATORS[t].sym} `;
-    return env ? fmt(env[t], t) : QUANTITIES[t].sym;
-  }).join('');
-}
+export const QUANTITIES = {
+  x: { sym: 'x', math: '$x$', name: 'position', dims: { m: 1 } },
+  v: { sym: 'v', math: '$v$', name: 'velocity', dims: { m: 1, s: -1 } },
+  dt: { sym: 'Δt', math: 'Δ$t$', name: 'time step', dims: { s: 1 } },
+};
+
+export const L1 = makeSystem(QUANTITIES, { m: 'a position', 'm/s': 'a velocity', s: 'a time', 1: 'a plain number' });
+export const { analyse, evaluate, render } = L1;
+export const describeUnit = L1.describe;
 
 /**
- * Run a rule for n steps from x0 and say what the learner should notice.
- * Returns { xs, verdict, correct, message }.
+ * Run a Lesson 1 rule for n steps from x0 and say what the learner should
+ * notice. Returns { xs, correct, message }.
  */
 export function judge(tokens, { x0, v, dt, n = 8 }) {
   const a = analyse(tokens);
-  if (!a.ok || !a.complete) return { correct: false, xs: [], message: a.error ?? 'Finish the rule first.' };
-  if (!same(a.dims, QUANTITIES.x.dims)) {
+  if (!a.ok || !a.complete) return { correct: false, xs: [], message: a.error ?? (a.hole ? 'Fill the empty tile first.' : 'Finish the rule first.') };
+  if (!sameDims(a.dims, QUANTITIES.x.dims)) {
     return { correct: false, xs: [], message: `This rule gives ${unitName(a.dims)} — ${describeUnit(a.dims)} — but x is a position, measured in metres.` };
   }
   const xs = [x0];

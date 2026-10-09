@@ -148,6 +148,25 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .play:disabled .play-i { border-left-color: var(--ink-3); }
 
 .timeline { flex: 1; min-width: 0; }
+.speed {
+  flex: none; min-width: 46px; height: 28px; border-radius: 999px; border: 1px solid var(--hair); background: var(--paper);
+  font: 500 12px var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums;
+}
+.speed:hover { border-color: var(--ink-3); color: var(--ink); }
+
+/* Chapter title: fades in at the top-left as each chapter begins. */
+.chapter-card {
+  position: absolute; left: 32px; top: 26px; pointer-events: none; opacity: 0;
+  display: grid; gap: 2px;
+}
+.chapter-card.is-on { animation: chapter 3.6s var(--ease) both; }
+.cc-num { font: 600 11px var(--sans); letter-spacing: 1.8px; text-transform: uppercase; color: var(--accent); }
+.cc-title { font: 400 34px/1.1 var(--serif); color: var(--ink); }
+@keyframes chapter {
+  0% { opacity: 0; transform: translateY(8px); }
+  18%, 72% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-4px); }
+}
 .tl-bar { display: flex; gap: 10px; cursor: pointer; padding: 10px 0 2px; }
 .tl-chapter { min-width: 34px; display: flex; flex-direction: column; gap: 7px; }
 .tl-track { display: flex; gap: 2px; height: 3px; }

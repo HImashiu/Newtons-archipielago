@@ -14,6 +14,32 @@ import { clamp, lerp, easeInOut } from './anim.js';
 import { mathHtml } from '../../render/mathtext.js';
 
 const DO_WEIGHT = 3.2; // timeline width of an interactive beat, in "seconds"
+const SPEEDS = [1, 1.25, 1.5, 0.75];
+
+/** Seconds a learner needs to read a caption (≈ 150 words per minute + a beat). */
+export function readTime(text) {
+  const words = String(text).replace(/<[^>]*>/g, ' ').replace(/\$/g, '').split(/\s+/).filter(Boolean).length;
+  return 1.6 + words / 2.5;
+}
+
+/**
+ * Stretch a watch beat so every caption can be read before the next one, and
+ * the last one before the beat ends; then hold briefly.
+ */
+function paceBeat(seg) {
+  if (seg.kind !== 'watch') return;
+  const caps = Array.isArray(seg.caption) ? seg.caption : typeof seg.caption === 'string' ? [[0, seg.caption]] : [];
+  let need = seg.dur;
+  caps.forEach(([t0, text], i) => {
+    const end = t0 + readTime(text);
+    need = Math.max(need, end);
+    const next = caps[i + 1];
+    if (next && next[0] < end - 0.3 && typeof window !== 'undefined' && window.location?.search.includes('debug')) {
+      console.warn(`Caption "${text.slice(0, 40)}…" needs ${(end - t0).toFixed(1)} s but the next starts after ${(next[0] - t0).toFixed(1)} s`);
+    }
+  });
+  seg.dur = need + (seg.hold ?? 1.2);
+}
 
 function mathify(text) {
   // Captions: plain HTML with $math$ spans set in Computer Modern italic.
@@ -29,7 +55,9 @@ export class Player {
     this.S = lesson.state();
     this.segs = [];
     lesson.chapters.forEach((ch, ci) => ch.beats.forEach((b, bi) => {
-      this.segs.push({ ...b, ch, ci, bi, index: this.segs.length });
+      const seg = { ...b, ch, ci, bi, index: this.segs.length };
+      paceBeat(seg);
+      this.segs.push(seg);
     }));
     this.i = 0;
     this.t = 0;
@@ -53,6 +81,8 @@ export class Player {
     this.playBtn = $('.play');
     this.timelineEl = $('.timeline');
     this.chapterLabel = $('.chapter-label');
+    this.speedBtn = $('.speed');
+    this.chapterCard = $('.chapter-card');
     this.ink = new Ink(this.svg);
 
     this.buildTimeline();
@@ -91,6 +121,12 @@ export class Player {
     this.chapterLabel.innerHTML = `<span class="ch-num">${seg.ch.num ?? ''}</span>${seg.ch.title}`;
     this.mountPanel();
     this.mountOverlay();
+    if (changed && seg.bi === 0 && seg.kind !== 'card' && this.chapterCard) {
+      this.chapterCard.innerHTML = `<span class="cc-num">Chapter ${seg.ch.num}</span><span class="cc-title">${seg.ch.title}</span>`;
+      this.chapterCard.classList.remove('is-on');
+      void this.chapterCard.offsetWidth;
+      this.chapterCard.classList.add('is-on');
+    }
     this.renderCaption(true);
     this.updateTimeline();
   }
@@ -153,7 +189,7 @@ export class Player {
     const cur = this.camOf(this.i, this.t);
     if (this.i === 0) return cur;
     const from = this.camOf(this.i - 1, Infinity);
-    const u = easeInOut(clamp(this.t / (this.seg.camDur ?? 1.4)));
+    const u = easeInOut(clamp(this.t / (this.seg.camDur ?? 2.2)));
     if (u >= 1) return cur;
     return {
       xmin: lerp(from.xmin, cur.xmin, u), xmax: lerp(from.xmax, cur.xmax, u),
@@ -392,6 +428,11 @@ export class Player {
 
   bindInput() {
     this.playBtn.addEventListener('click', () => this.togglePlay());
+    this.speedBtn?.addEventListener('click', () => {
+      this.speed = SPEEDS[(SPEEDS.indexOf(this.speed) + 1) % SPEEDS.length];
+      this.speedBtn.textContent = `${this.speed}×`;
+      this.speedBtn.setAttribute('aria-label', `Playback speed ${this.speed}×`);
+    });
     this.continueBtn.addEventListener('click', () => this.next());
     this.skipBtn.addEventListener('click', () => {
       this.seg.skip?.(this.S, this.api);

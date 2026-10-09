@@ -263,6 +263,118 @@ export class Ink {
     if (label) this.text(`${key}-t`, { x, y: y + 0.92 }, label, { op: o.op, dx: -8, dy: 4, size: 15, anchor: 'end' });
   }
 
+  /** Text placed in screen pixels (for typeset equations laid out on the stage). */
+  textS(key, sx, sy, str, o = {}) {
+    if (!this.visible(o)) return;
+    const size = o.size ?? 16;
+    this.P.el(o.layer ?? 'labels', key, 'text', this._attrs(`tx ${o.cls ?? ''}`, o, {
+      x: f(sx), y: f(sy), 'font-size': size, 'text-anchor': o.anchor ?? 'middle',
+    }), mathMarkup(str, size));
+  }
+
+  /** Horizontal curly brace under [x0, x1] (screen px) at y, opening upward. */
+  brace(key, x0, x1, y, o = {}) {
+    if (!this.visible(o) || x1 - x0 < 6) return;
+    const hgt = o.h ?? 9;
+    const m = (x0 + x1) / 2;
+    const q = hgt / 2;
+    const d = `M${f(x0)},${f(y)}Q${f(x0)},${f(y + q)} ${f(x0 + q)},${f(y + q)}L${f(m - q)},${f(y + q)}Q${f(m)},${f(y + q)} ${f(m)},${f(y + hgt)}`
+      + `M${f(x1)},${f(y)}Q${f(x1)},${f(y + q)} ${f(x1 - q)},${f(y + q)}L${f(m + q)},${f(y + q)}Q${f(m)},${f(y + q)} ${f(m)},${f(y + hgt)}`;
+    this.path(key, d, o.cls ?? 'thin', { op: o.op, layer: o.layer ?? 'annotations' });
+  }
+
+  /** Pin support under world point p: triangle, hatched ground. */
+  pinSupport(key, p, o = {}) {
+    if (!this.visible(o)) return;
+    const s = this.S(p);
+    const size = o.size ?? 15;
+    const base = s.y + size * 1.25;
+    this.path(`${key}-t`, `M${f(s.x)},${f(s.y)}L${f(s.x - size)},${f(base)}L${f(s.x + size)},${f(base)}Z`, 'support', { op: o.op, layer: 'statics' });
+    this.circle(`${key}-p`, p, 3.6, 'pin', { op: o.op, layer: 'statics' });
+    this._groundPx(key, s.x - size * 1.5, s.x + size * 1.5, base, o);
+  }
+
+  /** Roller support: triangle on two rollers, hatched ground. */
+  rollerSupport(key, p, o = {}) {
+    if (!this.visible(o)) return;
+    const s = this.S(p);
+    const size = o.size ?? 15;
+    const base = s.y + size * 1.25;
+    this.path(`${key}-t`, `M${f(s.x)},${f(s.y)}L${f(s.x - size)},${f(base)}L${f(s.x + size)},${f(base)}Z`, 'support', { op: o.op, layer: 'statics' });
+    this.circle(`${key}-p`, p, 3.6, 'pin', { op: o.op, layer: 'statics' });
+    const r = 3.4;
+    for (const [i, dx] of [[0, -size * 0.55], [1, size * 0.55]]) {
+      this.P.el('statics', `${key}-r${i}`, 'circle', { cx: f(s.x + dx), cy: f(base + r), r, class: 'wheel', opacity: o.op !== undefined && o.op < 0.999 ? f(o.op) : null });
+    }
+    this._groundPx(key, s.x - size * 1.5, s.x + size * 1.5, base + 2 * r, o);
+  }
+
+  _groundPx(key, x0, x1, y, o) {
+    this.path(`${key}-g`, `M${f(x0)},${f(y)}L${f(x1)},${f(y)}`, 'ink', { op: o.op, layer: 'statics' });
+    let d = '';
+    for (let x = x0 + 5; x <= x1; x += 7) d += `M${f(x)},${f(y)}L${f(x - 7)},${f(y + 7)}`;
+    this.path(`${key}-h`, d, 'hatch', { op: o.op, layer: 'statics' });
+  }
+
+  /** Uniform distributed load over [x0, x1] on top of a beam at height y. */
+  distLoad(key, x0, x1, y, hgt, o = {}) {
+    if (!this.visible(o)) return;
+    const top = y + hgt;
+    const n = Math.max(2, Math.round((x1 - x0) / 0.5));
+    this.line(`${key}-top`, { x: x0, y: top }, { x: x1, y: top }, 'ink', { op: o.op, layer: 'vectors' });
+    for (let i = 0; i <= n; i++) {
+      const x = x0 + ((x1 - x0) * i) / n;
+      this.arrow(`${key}-a${i}`, { x, y: top }, { x, y }, o.cls ?? 'ink', { op: o.op, head: 8, headW: 2.8 });
+    }
+  }
+
+  /** Moment: a three-quarter circular arrow around world point c. */
+  moment(key, c, r, ccw, o = {}) {
+    if (!this.visible(o)) return;
+    const s = this.S(c);
+    const a0 = o.start ?? -Math.PI * 0.75;
+    const sweep = (ccw ? 1 : -1) * Math.PI * 1.4;
+    // Screen y points down: a CCW (world) turn is a negative screen angle.
+    const pts = [];
+    for (let i = 0; i <= 28; i++) {
+      const a = -(a0 + (sweep * i) / 28);
+      pts.push({ x: s.x + r * Math.cos(a), y: s.y + r * Math.sin(a) });
+    }
+    this.path(`${key}-arc`, `M${pts.map((p) => P2(p)).join('L')}`, o.cls ?? 'ink', { op: o.op, layer: 'vectors' });
+    const tip = pts[pts.length - 1], prev = pts[pts.length - 3];
+    const u = V.norm(V.sub(tip, prev)), n = V.perp(u);
+    const base = V.addScaled(tip, u, -10);
+    this.path(`${key}-h`, `M${P2(V.addScaled(tip, u, 2))}L${P2(V.addScaled(base, n, 3.6))}L${P2(V.addScaled(base, n, -3.6))}Z`, `${o.cls ?? 'ink'} head`, { op: o.op, layer: 'vectors' });
+  }
+
+  /**
+   * Internal-force diagram: outline of value(x) over a baseline at world
+   * height y0 (value scaled by k m per unit), filled with vertical hatching
+   * as in engineering-mechanics texts.
+   */
+  diagram(key, samples, y0, k, o = {}) {
+    if (!this.visible(o) || samples.length < 2) return;
+    const pts = samples.map((p) => ({ x: p.x, y: y0 + p.v * k }));
+    const first = samples[0], last = samples[samples.length - 1];
+    const outline = [{ x: first.x, y: y0 }, ...pts, { x: last.x, y: y0 }];
+    this.poly(`${key}-o`, outline, `ink ${o.cls ?? ''}`, { op: o.op, layer: 'vectors', draw: o.draw });
+    // Vertical hatch every ~7 px, interpolating the curve.
+    const sx0 = this.S({ x: first.x, y: y0 }).x, sx1 = this.S({ x: last.x, y: y0 }).x;
+    const reveal = o.draw ?? 1;
+    let d = '';
+    let j = 0;
+    for (let sx = sx0 + 3.5; sx < sx0 + (sx1 - sx0) * reveal; sx += 7) {
+      const wx = this.toWorld(sx, 0).x;
+      while (j < pts.length - 2 && pts[j + 1].x < wx) j++;
+      const a = pts[j], b = pts[j + 1];
+      const u = b.x === a.x ? 0 : (wx - a.x) / (b.x - a.x);
+      const wy = a.y + (b.y - a.y) * Math.max(0, Math.min(1, u));
+      const sy = this.S({ x: wx, y: wy }).y, by = this.S({ x: wx, y: y0 }).y;
+      if (Math.abs(sy - by) > 1) d += `M${f(sx)},${f(by)}V${f(sy)}`;
+    }
+    this.path(`${key}-h`, d, `diag-hatch ${o.cls ?? ''}`, { op: o.op, layer: 'grid' });
+  }
+
   /** A draggable affordance ring (drawn by the player for active handles). */
   handle(key, p, active, t) {
     const s = this.S(p);
